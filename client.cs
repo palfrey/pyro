@@ -75,6 +75,10 @@ namespace Pyro
 				{
 					return base[idx].ToString();
 				}
+				set 
+				{
+					base[idx] = value;
+				}
 			}
 		}
 		
