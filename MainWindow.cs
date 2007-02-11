@@ -11,82 +11,119 @@ using Gtk;
 using System;
 using Gecko;
 using Pyro;
+using System.Collections;
+using System.Threading;
 
 namespace PyroGui
 {
+	class BugDisplay
+	{
+		public WebControl web;
+		public Bug bug;
+
+		public BugDisplay(Frame frm)
+		{
+			web = new WebControl();          
+			web.Show();
+			frm.Add(web);
+		}
+
+		public void render(bool stacktrace)
+		{
+			Gtk.Application.Invoke (delegate {
+				web.OpenStream("file:///"+(stacktrace?"#stacktrace":""),"text/html");
+				web.AppendData(bug.raw);
+				web.CloseStream();
+			});
+		}
+	}
+	
 	public class MainWindow
 	{
-		WebControl webCurr, webDupl;
+		BugDisplay curr,dupl;
 		[Widget] Frame frmCurrent;
 		[Widget] Frame frmDupl;
 		[Widget] Label lblStatus;
 
-		public static void render(WebControl web, string content, bool stacktrace)
-		{
-			web.OpenStream("file:///"+(stacktrace?"#stacktrace":""),"text/html");
-			web.AppendData(content);
-			web.CloseStream();
-		}
+		Queue todo;
+		Bugzilla bugz;
 
+	
 		public MainWindow(string[] Args)
 		{
 			Glade.XML gxml = new Glade.XML(null, "gui.glade", "MainWindow", null);
 			gxml.Autoconnect(this);
 			
-			webCurr = new WebControl();          
-			webCurr.Show();
-			frmCurrent.Add(webCurr);
+			curr = new BugDisplay(frmCurrent);
+			dupl = new BugDisplay(frmDupl);
 
-			webDupl = new WebControl();          
-			webDupl.Show();
-			frmDupl.Add(webDupl);
+			((Window)gxml.GetWidget("MainWindow")).Maximize();
+			
+			bugz = new Bugzilla("http://bugzilla.gnome.org/");
+			bugz.login("palfrey@tevp.net","epsilon");
 
-			Bug b = new Bug(0);//int.Parse(Args[0]));
-			Bug curr;
-			if (Args.Length == 0)
+			todo = new Queue();
+			if (Args.Length!=0)
+				todo.Enqueue(new Bug(int.Parse(Args[0]),bugz));
+			GLib.Idle.Add(new GLib.IdleHandler(processTask));
+			//processTask(null);
+			return;
+		}
+
+		public bool processTask()
+		{
+			Bug bug;
+			if (todo.Count == 0)
 			{
-				Bug[] core = b.corebugs();
-				curr = core[21];
+				Bug[] core = new Bug(0,bugz).corebugs();
+				bug = core[21];
 			}
 			else
 			{
-				curr = new Bug(int.Parse(Args[0]));
+				bug = (Bug)todo.Dequeue();
 			}
-			if (curr.triageable())
+			if (bug.triageable())
 			{
-				Stacktrace st = curr.getStacktrace();
+				Stacktrace st = bug.getStacktrace();
+				curr.bug = bug;
 				if (st.usable())
 				{
-					Bug[] dupe = curr.similar();
+					Bug[] dupe = bug.similar();
 					Bug du = null;
 					foreach(Bug b2 in dupe)
 					{
-						if (curr.id == b2.id)
+						if (bug.id == b2.id)
 							continue;
 						Stacktrace st2 = b2.getStacktrace();
 						if (st == st2)
 						{
-							lblStatus.Text = String.Format("{0} and {1} are duplicates",curr.id,b2.id);
-							MainWindow.render(webCurr,curr.raw,true);
-							MainWindow.render(webDupl,b2.raw,true);
+							lblStatus.Text = String.Format("{0} and {1} are duplicates?",bug.id,b2.id);
+							curr.render(true);
+							dupl.bug = b2;
+							dupl.render(true);
 							du = b2;
 							break;
 						}
 					}
 					if (du == null)
 					{
-						lblStatus.Text = "Can't find match. Need better trace?";
-						MainWindow.render(webCurr,curr.raw,true);
+						if (bug["Status"]!="NEEDINFO")
+						{
+							lblStatus.Text = "Can't find match. Need better trace?";
+							curr.render(true);
+						}
+						else
+							Console.WriteLine("Already needinfo, need better trace");
 					}
 					//Console.WriteLine(st);
 				}
 				else
 				{
-					lblStatus.Text = "Crap stacktrace";
-					MainWindow.render(webCurr,curr.raw,false);
+					lblStatus.Text = "Crap stacktrace?";
+					curr.render(false);
 				}
 			}
-			((Window)gxml.GetWidget("MainWindow")).Maximize();
+			return false;
 		}
 		
 		[STAThread]
@@ -105,10 +142,17 @@ namespace PyroGui
 
 		public void OnYesClicked(object o, EventArgs args)
 		{
+			curr.bug.setBadStacktrace();	
+			
 		}
 		
 		public void OnNoClicked(object o, EventArgs args)
 		{
+		}
+
+		protected void OnOpenUri (object o, OpenUriArgs args)
+		{
+			args.RetVal = true; /* don't load */
 		}
 	}
 }

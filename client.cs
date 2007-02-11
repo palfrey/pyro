@@ -4,6 +4,8 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Pyro
 {
@@ -15,8 +17,7 @@ namespace Pyro
 		int dupid = -1;
 
 		string _raw = null;
-
-		string cachepath = "cache";
+		Bugzilla bugz = null;
 
 		public int id
 		{
@@ -25,58 +26,27 @@ namespace Pyro
 			}
 		}
 		
-		string getData(string url, string cache)
-		{
-			string path = Path.Combine(cachepath,cache);
-			string ret = "";
-			FileInfo fi = new FileInfo(path);
-			if (!fi.Exists)
-			{
-				Console.WriteLine("grabbing {0}",url);
-				HttpWebRequest wr = (HttpWebRequest) WebRequest.Create(url);
-				HttpWebResponse wre = (HttpWebResponse) wr.GetResponse();
-				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
-				try
-				{
-					ret = sr.ReadToEnd();
-				}
-				catch
-				{
-					Console.WriteLine("Exception while reading bug");
-				}
-				sr.Close();
-				if (!Directory.Exists(cachepath))
-				{
-					Directory.CreateDirectory(cachepath);
-				}
-				TextWriter outFile = new StreamWriter(path);
-				outFile.Write(ret);
-				outFile.Close();
-			}
-			else
-			{
-				TextReader inFile = new StreamReader(path);
-				ret = inFile.ReadToEnd();
-				inFile.Close();
-			}
-			return ret;
-		}
-
 		public string raw
 		{
 			get
 			{
 				if (this._raw == null)
 				{
-					this._raw = this.getData("http://bugzilla.gnome.org/show_bug.cgi?id="+this.id, String.Concat(this.id));
+					this._raw = bugz.getBug(this.id);
 				}
 				return this._raw;
 			}
 		}
+
+		public void refresh()
+		{
+			this._raw = bugz.getBug(this.id,true);
+		}
 		
-		public Bug(int id)
+		public Bug(int id, Bugzilla bugz)
 		{
 			this._id = id;
+			this.bugz = bugz;
 		}
 
 		string[] getComments()
@@ -151,11 +121,11 @@ namespace Pyro
 		
 		public Bug [] similar()
 		{
-			StringHash[] core = Bug.tableParser(this.getData("http://bugzilla.gnome.org/dupfinder/simple-dup-finder.cgi?id="+this.id, String.Concat(id)+"-dupe"));
+			StringHash[] core = Bug.tableParser(bugz.simpleDupe(this.id));
 			ArrayList bugs = new ArrayList();
 			foreach(StringHash h in core)
 			{
-				Bug b = new Bug(System.Convert.ToInt32(h["Bug #"],10));
+				Bug b = new Bug(System.Convert.ToInt32(h["Bug #"],10),this.bugz);
 				b.values = new StringHash();
 				assignKeys(b,h);
 				bugs.Add(b);
@@ -165,15 +135,11 @@ namespace Pyro
 
 		public Bug [] corebugs()
 		{
-			string corelist = this.getData("http://bugzilla.gnome.org/reports/core-bugs-today.cgi","corebugs");
-			//Console.WriteLine(corelist);
-			Match m = Regex.Match(corelist,"(http://bugzilla.gnome.org/buglist.cgi\\?bug_id=[^\"]+)");
-			//Console.WriteLine(m.ToString());
-			StringHash[] core = Bug.tableParser(this.getData(m.ToString(),"corebugs-real"));
+			StringHash[] core = Bug.tableParser(bugz.corebugs());
 			ArrayList bugs = new ArrayList();
 			foreach(StringHash h in core)
 			{
-				Bug b = new Bug(System.Convert.ToInt32(h["ID"],10));
+				Bug b = new Bug(System.Convert.ToInt32(h["ID"],10),this.bugz);
 				b.values = new StringHash();
 				assignKeys(b,h);
 				bugs.Add(b);
@@ -323,6 +289,71 @@ namespace Pyro
 			}
 			return (StringHash[])rows.ToArray(typeof(StringHash));
 		}
+
+		public void setBadStacktrace()
+		{
+			refresh();
+			if (this["Status"]!="NEEDINFO")
+			{
+				StringHash orig = parseInput();
+				orig["comment"] = @"Thanks for taking the time to report this bug.
+Unfortunately, that stack trace is missing some elements that will help a lot
+to solve the problem, so it will be hard for the developers to fix that crash.
+Can you get us a stack trace with debugging symbols? Please see
+http://live.gnome.org/GettingTraces for more information on how to do so.
+Thanks in advance!";
+				orig["knob"] = "needinfo";
+				bugz.changeBug(orig);
+			}
+			else
+				Console.WriteLine("already marked as needinfo");
+		}
+		
+		private StringHash parseInput()
+		{
+			StringHash ret = new StringHash();
+			Match form = Regex.Match(this.raw, "<form name=\"changeform\" method=\"post\" action=\"process_bug.cgi\">(.*?)</form>",RegexOptions.Singleline);
+			if (!form.Success)
+				throw new Exception();
+			foreach (Match m2 in Regex.Matches(form.ToString(), "<input([^>]*)>|<textarea([^>]*)>", RegexOptions.Singleline))
+			{
+				StringHash sh = new StringHash();
+				foreach (Match p in Regex.Matches(m2.ToString(), "\\s+(.*?)=\"(.*?)\"", RegexOptions.Singleline))
+				{
+					sh.Add(p.Groups[1].Captures[0].Value,p.Groups[2].Captures[0].Value);
+				}
+				if (!sh.ContainsKey("type"))
+					sh.Add("type","input");
+				switch(sh["type"])
+				{
+					case "input":
+					case "hidden":
+						if (sh.ContainsKey("value"))
+							ret.Add(sh["name"],sh["value"]);
+						else	
+							ret.Add(sh["name"],"");
+						break;
+					case "submit":
+					case "checkbox": // none are currently checked, so ignore
+						break;
+					case "radio":
+						if (sh.ContainsKey("checked"))
+							ret.Add(sh["name"],sh["value"]);
+						break;
+					default:
+						throw new Exception(sh["type"]);
+				}
+			}
+			foreach (Match m2 in Regex.Matches(form.ToString(), "<select name=\"([^\"]*)\"(.*?)</select>", RegexOptions.Singleline))
+			{
+				Match option = Regex.Match(m2.Groups[2].Captures[0].Value, "<option value=\"([^\"]*)\" selected>",RegexOptions.Singleline);
+				if (option.Success)
+				{
+					ret.Add(m2.Groups[1].Captures[0].Value, option.Groups[1].Captures[0].Value);
+				}
+			}
+			return ret;
+		}
 	}
 
 
@@ -430,6 +461,189 @@ namespace Pyro
 			if (this.content.Count == 0)
 				return false;
 			return true;
+		}
+	}
+
+	public class Bugzilla
+	{
+		string cachepath = "cache";
+		string root = "";
+
+		CookieContainer cookies = null;
+		
+		public Bugzilla(string root)
+		{
+			this.root = root;
+		}
+
+		public bool login(string username, string password)
+		{
+			if (cookies == null)
+			{
+				FileInfo f=new FileInfo("cookies.dat");
+				if (f.Exists)
+				{
+					Stream s=f.Open(FileMode.Open);
+					BinaryFormatter b=new BinaryFormatter();
+					cookies = (CookieContainer)b.Deserialize(s);
+					s.Close();
+				}
+			}
+
+			if (cookies==null || cookies.GetCookieHeader(new System.Uri(root)).IndexOf("Bugzilla_login")==-1)
+			{
+				string postData="Bugzilla_login="+username+"&Bugzilla_password="+password+"&Bugzilla_remember=on&Bugzilla_restrictlogin=on&GoAheadAndLogIn=1&GoAheadAndLogIn=Log+in";
+				ASCIIEncoding encoding=new ASCIIEncoding();
+				byte[]  data = encoding.GetBytes(postData);
+
+				HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+"index.cgi");
+				myRequest.Method = "POST";
+				myRequest.ContentType="application/x-www-form-urlencoded";
+				myRequest.ContentLength = data.Length;
+				cookies = new CookieContainer();
+				myRequest.CookieContainer = cookies;
+
+				Stream newStream=myRequest.GetRequestStream();
+				newStream.Write(data,0,data.Length);
+				newStream.Close();
+
+				HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
+				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+				string ret = "";
+				try
+				{
+					ret = sr.ReadToEnd();
+				}
+				catch
+				{
+					Console.WriteLine("Exception while reading bug");
+				}
+				sr.Close();
+				if (ret.IndexOf("Logged In")==-1)
+				{
+					TextWriter outFile = new StreamWriter("login-test");
+					outFile.Write(ret);
+					outFile.Close();
+					return false;
+				}
+				else
+				{
+					FileInfo f=new FileInfo("cookies.dat");
+					Stream s=f.Open(FileMode.Create);
+					BinaryFormatter b=new BinaryFormatter();
+					b.Serialize(s,cookies);
+					s.Close();
+					return true;
+				}
+			}
+			return true;
+		}
+
+		private string getData(string url, string cache)
+		{
+			return getData(url,cache,false);
+		}
+
+		private string getData(string url, string cache, bool ignorecache)
+		{
+			string path = Path.Combine(cachepath,cache);
+			string ret = "";
+			FileInfo fi = new FileInfo(path);
+			if (ignorecache || !fi.Exists)
+			{
+				Console.WriteLine("grabbing {0}",url);
+				HttpWebRequest wr = (HttpWebRequest) WebRequest.Create(url);
+				if (cookies!=null)
+					wr.CookieContainer = cookies;
+				HttpWebResponse wre = (HttpWebResponse) wr.GetResponse();
+				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+				try
+				{
+					ret = sr.ReadToEnd();
+				}
+				catch
+				{
+					Console.WriteLine("Exception while reading bug");
+				}
+				sr.Close();
+				if (!Directory.Exists(cachepath))
+				{
+					Directory.CreateDirectory(cachepath);
+				}
+				TextWriter outFile = new StreamWriter(path);
+				outFile.Write(ret);
+				outFile.Close();
+			}
+			else
+			{
+				TextReader inFile = new StreamReader(path);
+				ret = inFile.ReadToEnd();
+				inFile.Close();
+			}
+			return ret;
+		}
+
+		public string getBug(int id)
+		{
+			return getBug(id,false);
+		}
+
+		public string getBug(int id, bool ignorecache)
+		{
+			return getData(root+"show_bug.cgi?id="+id, String.Concat(id), ignorecache);
+		}
+
+		public string simpleDupe(int id)
+		{
+			return getData(root+"dupfinder/simple-dup-finder.cgi?id="+id, String.Concat(id)+"-dupe");
+		}
+
+		public string corebugs()
+		{
+			string corelist = getData(root+"reports/core-bugs-today.cgi","corebugs");
+			Match m = Regex.Match(corelist,"("+root+"buglist.cgi\\?bug_id=[^\"]+)");
+			return getData(m.ToString(),"corebugs-real");
+		}
+
+		public bool changeBug(Hashtable values)
+		{
+			StringBuilder query = new StringBuilder();
+			foreach(string s in values.Keys)
+			{
+				Console.WriteLine("{0} = {1}",s,values[s]);
+				if (query.Length!=0)
+					query.Append("&");
+				query.AppendFormat("{0}={1}",s,values[s]);
+			}
+			ASCIIEncoding encoding=new ASCIIEncoding();
+			byte[]  data = encoding.GetBytes(query.ToString());
+
+			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+"process_bug.cgi");
+			myRequest.Method = "POST";
+			myRequest.ContentType="application/x-www-form-urlencoded";
+			myRequest.ContentLength = data.Length;
+			myRequest.CookieContainer = cookies;
+
+			Stream newStream=myRequest.GetRequestStream();
+			newStream.Write(data,0,data.Length);
+			newStream.Close();
+
+			HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
+			StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+			string ret = "";
+			try
+			{
+				ret = sr.ReadToEnd();
+			}
+			catch
+			{
+				Console.WriteLine("Exception while reading bug");
+			}
+			sr.Close();
+			TextWriter outFile = new StreamWriter("change-test");
+			outFile.Write(ret);
+			outFile.Close();
+			return false;
 		}
 	}
 }
