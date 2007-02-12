@@ -9,10 +9,13 @@
 using Glade;
 using Gtk;
 using System;
+using System.IO;
 using Gecko;
 using Pyro;
 using System.Collections;
 using System.Threading;
+using System.Collections.Generic;
+using System.Net;
 
 namespace PyroGui
 {
@@ -25,16 +28,38 @@ namespace PyroGui
 		{
 			web = new WebControl();          
 			web.Show();
+			//web.StatusChange += new EventHandler(changeHandler);
+			web.NetStart += new EventHandler(NetStateAllHandler);
 			frm.Add(web);
 		}
 
+		public void changeHandler (object o, EventArgs args)
+		{
+			Console.WriteLine("changehandler");
+			Console.WriteLine(args);
+		}
+
+		public void NetStateAllHandler (object o, EventArgs args)
+		{
+			Console.WriteLine("netstateall");
+			Console.WriteLine(args);
+		}
+
+		public void render(bool stacktrace, string content)
+		{
+			web.OpenStream("file:///"+(stacktrace?"#stacktrace":""),"text/html");
+			string chunk = "wibble"+content.Substring(0,content.Length>=100?600:content.Length);
+			web.AppendData(chunk);
+			web.CloseStream();
+			web.Show();
+			while (Gtk.Application.EventsPending ())
+				Gtk.Application.RunIteration ();
+			Console.WriteLine(chunk);
+		}
+	
 		public void render(bool stacktrace)
 		{
-			Gtk.Application.Invoke (delegate {
-				web.OpenStream("file:///"+(stacktrace?"#stacktrace":""),"text/html");
-				web.AppendData(bug.raw);
-				web.CloseStream();
-			});
+			render(stacktrace,bug.raw);
 		}
 	}
 	
@@ -45,33 +70,114 @@ namespace PyroGui
 		[Widget] Frame frmDupl;
 		[Widget] Label lblStatus;
 
-		Queue todo;
+		Queue<Bug> todo;
 		Bugzilla bugz;
 
+		static ThreadNotify notify;
+
+		public enum Response
+		{
+			LoginSuccess,
+			LoginFailure,
+			BadStacktrace,
+			Duplicate
+		}
+
+		public struct Event
+		{
+			public Response r;
+			public Bug b, dup;
+			public string text;
+
+			public Event(Response r, string info) : this(r,null,null,info) {}
+
+			public Event(Response r, Bug one, Bug two, string info)
+			{
+				this.r = r;
+				b = one;
+				dup = two;
+				text = info;
+			}
+		}
+
+		public Queue <Event> events;
 	
 		public MainWindow(string[] Args)
 		{
 			Glade.XML gxml = new Glade.XML(null, "gui.glade", "MainWindow", null);
 			gxml.Autoconnect(this);
+
+			events = new Queue<Event>();
 			
 			curr = new BugDisplay(frmCurrent);
+			curr.render(false,"hello world");
 			dupl = new BugDisplay(frmDupl);
 
 			((Window)gxml.GetWidget("MainWindow")).Maximize();
+			((Window)gxml.GetWidget("MainWindow")).ShowAll();
+			//GlobalProxySelection.Select = new WebProxy("http://taz:8118");
 			
 			bugz = new Bugzilla("http://bugzilla.gnome.org/");
-			bugz.login("palfrey@tevp.net","epsilon");
 
-			todo = new Queue();
+			todo = new Queue<Bug>();
 			if (Args.Length!=0)
 				todo.Enqueue(new Bug(int.Parse(Args[0]),bugz));
-			GLib.Idle.Add(new GLib.IdleHandler(processTask));
-			//processTask(null);
-			return;
+			Thread thr = new Thread (new ThreadStart (processTask));
+		    thr.Start ();
+			//GLib.Idle.Add(new GLib.IdleHandler(processTask));
+			notify = new ThreadNotify (new ReadyEvent (ready));
 		}
 
-		public bool processTask()
+		void ready ()
 		{
+			if (events.Count>0)
+			{
+				Event e = events.Dequeue();
+				lblStatus.Text = e.text;
+				this.dupl = null;
+				switch(e.r)
+				{
+					case Response.LoginFailure:
+					case Response.LoginSuccess:
+						break;
+					case Response.Duplicate:
+						this.dupl.bug = e.dup;
+						this.dupl.render(true);
+						Console.WriteLine("dupl: {0}",e.dup.id);
+						goto case Response.BadStacktrace;
+					case Response.BadStacktrace:
+						this.curr.bug = e.b;
+						this.curr.render(this.dupl!=null);
+						Console.WriteLine("curr: {0}",e.b.id);
+						break;
+				}
+			}
+		}
+
+		private void postEvent(Event e)
+		{
+			events.Enqueue(e);
+			notify.WakeupMain();
+		}
+
+		public void processTask()
+		{
+			if (!bugz.loggedIn)
+			{
+				try
+				{
+					if (!bugz.login("palfrey@tevp.net","epsilon"))
+					{
+						postEvent(new Event(Response.LoginFailure,"Login failure"));
+						return;
+					}
+				}
+				catch (WebException e)
+				{
+					postEvent(new Event(Response.LoginFailure,((HttpWebResponse)e.Response).StatusDescription));
+					return;
+				}
+			}
 			Bug bug;
 			if (todo.Count == 0)
 			{
@@ -80,7 +186,7 @@ namespace PyroGui
 			}
 			else
 			{
-				bug = (Bug)todo.Dequeue();
+				bug = todo.Dequeue();
 			}
 			if (bug.triageable())
 			{
@@ -97,33 +203,23 @@ namespace PyroGui
 						Stacktrace st2 = b2.getStacktrace();
 						if (st == st2)
 						{
-							lblStatus.Text = String.Format("{0} and {1} are duplicates?",bug.id,b2.id);
-							curr.render(true);
-							dupl.bug = b2;
-							dupl.render(true);
-							du = b2;
+							postEvent(new Event(Response.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
 							break;
 						}
 					}
 					if (du == null)
 					{
 						if (bug["Status"]!="NEEDINFO")
-						{
-							lblStatus.Text = "Can't find match. Need better trace?";
-							curr.render(true);
-						}
+							postEvent(new Event(Response.BadStacktrace,bug,null,"Can't find match. Need better trace?"));
 						else
 							Console.WriteLine("Already needinfo, need better trace");
 					}
 					//Console.WriteLine(st);
 				}
 				else
-				{
-					lblStatus.Text = "Crap stacktrace?";
-					curr.render(false);
-				}
+					postEvent(new Event(Response.BadStacktrace,bug,null, "Crap stacktrace?"));
 			}
-			return false;
+			return;
 		}
 		
 		[STAThread]

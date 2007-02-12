@@ -4,11 +4,16 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Pyro
 {
+	public class StringHash: Dictionary <string,string> /*Hashtable*/
+	{
+	}
+		
 	public class Bug
 	{
 		StringHash values = null;
@@ -67,22 +72,7 @@ namespace Pyro
 			return this.comments;
 		}
 		
-		public class StringHash: Hashtable
-		{
-			public string this[string idx]
-			{
-				get
-				{
-					return base[idx].ToString();
-				}
-				set 
-				{
-					base[idx] = value;
-				}
-			}
-		}
-		
-		
+	
 		public string this[string idx]
 		{
 			get
@@ -472,12 +462,33 @@ Thanks in advance!";
 	{
 		string cachepath = "cache";
 		string root = "";
+		
+		WebProxy wp;
+
+		private bool _loggedIn = false;
+		public bool loggedIn
+		{
+			get
+			{
+				return _loggedIn;
+			}
+		}
 
 		CookieContainer cookies = null;
 		
 		public Bugzilla(string root)
 		{
 			this.root = root;
+			wp = new WebProxy("taz",8118);
+		}
+
+		private HttpWebRequest genRequest(string path)
+		{
+			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+path);
+			myRequest.UserAgent = "blah";
+			myRequest.Proxy = wp;
+			myRequest.CookieContainer = cookies;
+			return myRequest;
 		}
 
 		public bool login(string username, string password)
@@ -500,17 +511,17 @@ Thanks in advance!";
 				ASCIIEncoding encoding=new ASCIIEncoding();
 				byte[]  data = encoding.GetBytes(postData);
 
-				HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+"index.cgi");
+				cookies = new CookieContainer();
+				HttpWebRequest myRequest = genRequest("index.cgi");
 				myRequest.Method = "POST";
 				myRequest.ContentType="application/x-www-form-urlencoded";
 				myRequest.ContentLength = data.Length;
-				cookies = new CookieContainer();
-				myRequest.CookieContainer = cookies;
 
 				Stream newStream=myRequest.GetRequestStream();
 				newStream.Write(data,0,data.Length);
 				newStream.Close();
 
+				Console.WriteLine(myRequest.Headers.ToString());
 				HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
 				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
 				string ret = "";
@@ -537,6 +548,7 @@ Thanks in advance!";
 					BinaryFormatter b=new BinaryFormatter();
 					b.Serialize(s,cookies);
 					s.Close();
+					_loggedIn = true;
 					return true;
 				}
 			}
@@ -553,12 +565,10 @@ Thanks in advance!";
 			string path = Path.Combine(cachepath,cache);
 			string ret = "";
 			FileInfo fi = new FileInfo(path);
+			Console.WriteLine("grabbing {0}",url);
 			if (ignorecache || !fi.Exists)
 			{
-				Console.WriteLine("grabbing {0}",url);
-				HttpWebRequest wr = (HttpWebRequest) WebRequest.Create(url);
-				if (cookies!=null)
-					wr.CookieContainer = cookies;
+				HttpWebRequest wr = genRequest(url);
 				HttpWebResponse wre = (HttpWebResponse) wr.GetResponse();
 				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
 				try
@@ -594,22 +604,22 @@ Thanks in advance!";
 
 		public string getBug(int id, bool ignorecache)
 		{
-			return getData(root+"show_bug.cgi?id="+id, String.Concat(id), ignorecache);
+			return getData("show_bug.cgi?id="+id, String.Concat(id), ignorecache);
 		}
 
 		public string simpleDupe(int id)
 		{
-			return getData(root+"dupfinder/simple-dup-finder.cgi?id="+id, String.Concat(id)+"-dupe");
+			return getData("dupfinder/simple-dup-finder.cgi?id="+id, String.Concat(id)+"-dupe");
 		}
 
 		public string corebugs()
 		{
-			string corelist = getData(root+"reports/core-bugs-today.cgi","corebugs");
-			Match m = Regex.Match(corelist,"("+root+"buglist.cgi\\?bug_id=[^\"]+)");
+			string corelist = getData("reports/core-bugs-today.cgi","corebugs");
+			Match m = Regex.Match(corelist,"(buglist.cgi\\?bug_id=[^\"]+)");
 			return getData(m.ToString(),"corebugs-real");
 		}
 
-		public bool changeBug(Hashtable values)
+		public bool changeBug(StringHash values)
 		{
 			StringBuilder query = new StringBuilder();
 			foreach(string s in values.Keys)
