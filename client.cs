@@ -336,6 +336,12 @@ namespace Pyro
 							case "nor":
 								b.values["Severity"] = "normal";
 								break;
+							case "enh":
+								b.values["Severity"] = "enhancement";
+								break;
+							case "tri":
+								b.values["Severity"] = "trivial";
+								break;
 							default:
 								throw new Exception(h[key]);
 						}
