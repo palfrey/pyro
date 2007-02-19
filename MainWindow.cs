@@ -401,7 +401,7 @@ namespace PyroGui
 			if (values["Status"]=="UNCONFIRMED")
 			{
 				st.print();
-				postEvent(new Event(BugEvent.NoMatch,bug,null,"Can't find match. Need better trace?"));
+				postEvent(new Event(BugEvent.NoMatch,bug,null,String.Format("Can't find match. Need better trace for {0}?",bug.id)));
 			}
 			else
 				Console.WriteLine("Not unconfirmed, so not need better trace");
