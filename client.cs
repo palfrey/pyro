@@ -941,6 +941,57 @@ Thanks in advance!";
 			}
 		}
 
+		private struct SimilarTodo
+		{
+			public Bug old;
+			public Stacktrace oldst;
+			public Stack<int> todo;
+		}
+		
+		public void similar(int id, Response r)
+		{
+			SimilarTodo st = new SimilarTodo();
+			st.old = getExisting(id);
+			st.old.getStacktrace(new Response(similarOldSt,r,st));
+		}
+
+		private void similarOldSt(object res, object input, Response r)
+		{
+			SimilarTodo st = (SimilarTodo) input;
+			st.oldst = (Stacktrace)res;
+			st.todo = new Stack<int>();
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "select id from bugs where id!="+String.Concat(st.old.id);
+			IDataReader reader = dbcmd.ExecuteReader();
+			while (reader.Read())
+				st.todo.Push(reader.GetInt32(0));
+			nextSimilar(null,st,r);	
+		}
+
+		private void nextSimilar(object res, object input, Response r)
+		{
+			SimilarTodo st = (SimilarTodo) input;
+			if (res!=null)
+			{
+				Stacktrace st2 = (Stacktrace)res;
+				if (st2 == st.oldst)
+				{
+					r.invoke(st2);
+					return;
+				}
+			}
+			if (st.todo.Count == 0)
+			{
+				r.invoke(null);
+				return;
+			}
+			int newid = st.todo.Pop();
+			Bug app = getExisting(newid);
+			if (app == null)
+				throw new Exception(String.Concat(newid));
+			app.getStacktrace(new Response(nextSimilar,r,st));
+		}
+
 		public Bug getExisting(int id)
 		{
 			IDbCommand dbcmd = dbcon.CreateCommand();

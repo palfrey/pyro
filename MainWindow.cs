@@ -330,10 +330,23 @@ namespace PyroGui
 		{
 			st = (Stacktrace)res;
 			if (st.usable())
-				bug.similar(new Response(testSimilar,null,data));
+				BugDB.DB.similar(bug.id,new Response(moreStacktraces,r, data));	
 			else
 				bug.getValues("Status",new Response(testNeedinfo,null,data));
 			bug.describe();	
+		}
+
+		private void moreStacktraces(object res, object data, Response r)
+		{
+			if (res!=null)
+			{
+				Stacktrace st = (Stacktrace)res;
+				Bug b2 = BugDB.DB.getExisting(st.id);
+				postEvent(new Event(BugEvent.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
+				taskLock = false;
+			}
+			else
+				bug.similar(new Response(testSimilar,null,data));
 		}
 
 		private void testNeedinfo(object res, object data, Response r)
