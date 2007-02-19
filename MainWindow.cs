@@ -174,6 +174,7 @@ namespace PyroGui
 					b = new Bug(id,bugz);
 				todo.Enqueue(b);
 			}
+			ready();
 			GLib.Idle.Add(new GLib.IdleHandler(processTask));
 			notify = new ThreadNotify (new ReadyEvent (ready));
 		}
