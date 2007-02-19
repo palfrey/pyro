@@ -777,6 +777,16 @@ Thanks in advance!";
 			public string path;
 		}
 		
+		public static string strip(string inVal)
+		{
+			string val = Regex.Replace(inVal,"<script type=\"text/javascript\">.*?</script>","",RegexOptions.Singleline);
+			val = Regex.Replace(val,"<link href=\"skins/standard/global.css\" rel=\"stylesheet\" type=\"text/css\">","<style type=\"text/css\">\n.trace-function { color: #cc0000; }\n.trace-handler  { color: #4e9a06; }\n</style>");
+
+
+			string pattern = @"</?(?i:img|base|script|embed|object|frameset|frame|iframe|meta|link)(.|\n)*?>";
+			return Regex.Replace(val, pattern, "").Trim();
+		}
+
 		private void getData(string url, string cache, Response r) {getData(url,cache,false,r);}
 		private void getData(string url, string cache, bool ignorecache, Response chain)
 		{
@@ -822,7 +832,7 @@ Thanks in advance!";
 			}
 			Console.WriteLine("Got {0}",st.path);
 			TextWriter outFile = new StreamWriter(st.path);
-			outFile.Write(ret);
+			outFile.Write(strip(ret));
 			outFile.Close();
 			r.invoke(ret);
 		}
