@@ -913,6 +913,7 @@ Thanks in advance!";
 		static readonly BugDB instance = new BugDB();
 		SqliteConnection dbcon = null;
 		public static Bugzilla bugz =null;
+		Dictionary<int,Bug> bugs=null;
 
 		static BugDB()
 		{
@@ -931,6 +932,7 @@ Thanks in advance!";
 				dbcmd.CommandText = "create table bugs(id integer primary key, raw blob)";
 				dbcmd.ExecuteReader();
 			}
+			bugs = new Dictionary<int,Bug>();
 		}
 
 		public static BugDB DB
@@ -994,6 +996,8 @@ Thanks in advance!";
 
 		public Bug getExisting(int id)
 		{
+			if (bugs.ContainsKey(id))
+				return bugs[id];
 			IDbCommand dbcmd = dbcon.CreateCommand();
 			dbcmd.CommandText = "select raw from bugs where id="+String.Concat(id);
 			IDataReader reader = dbcmd.ExecuteReader();
@@ -1001,6 +1005,7 @@ Thanks in advance!";
 			{
 				Bug ret = new Bug(id,bugz);
 				ret.setRaw(reader.GetString(0));
+				bugs[id] = ret;
 				return ret;
 			}
 			else
