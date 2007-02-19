@@ -273,9 +273,9 @@ namespace PyroGui
 				}
 				return true;
 			}
-			if (events.Count>=2)
+			if (events.Count>=1)
 				return true;
-			if (events.Count<2)
+			if (events.Count<1)
 			{
 				Console.WriteLine("\nlooking for bugs\n");
 				taskLock = true;
