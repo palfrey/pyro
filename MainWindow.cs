@@ -198,13 +198,11 @@ namespace PyroGui
 						Console.WriteLine("dupl: {0}",e.dup.id);
 						this.dupl.bug = e.dup;
 						this.dupl.showBug(true);
-						//this.dupl.loadURL("http://bugzilla.gnome.org/show_bug.cgi?id="+this.dupl.bug.id+"#stacktrace");
 						goto case BugEvent.BadStacktrace;
 					case BugEvent.NoMatch:
 					case BugEvent.BadStacktrace:
 						Console.WriteLine("curr: {0}",e.b.id);
 						this.curr.bug = e.b;
-						//this.curr.loadURL("http://bugzilla.gnome.org/show_bug.cgi?id="+this.curr.bug.id+(this.dupl.bug==null?"":"#stacktrace"));
 						this.curr.showBug(e.r==BugEvent.NoMatch || this.dupl.bug!=null);
 						break;
 				}
