@@ -1,10 +1,8 @@
 /*
- * Created by SharpDevelop.
  * User: Tom Parker
  * Date: 06/02/2007
  * Time: 01:18
  * 
- * To change this template use Tools | Options | Coding | Edit Standard Headers.
  */
 using Glade;
 using Gtk;
@@ -103,12 +101,16 @@ namespace PyroGui
 			NoMatch,
 			BadStacktrace,
 			Duplicate,
+			RanOut
 		}
+
+		bool didranout = false;
 
 		public enum BugChange
 		{
 			MarkBad,
-			MarkDupe
+			MarkDupe,
+			MarkDone
 		}
 
 		public struct Event
@@ -146,9 +148,15 @@ namespace PyroGui
 		}
 		public Queue <Delta> deltas;
 	
+		Glade.XML gxml;
+
+		bool hasprocess = false;
+
+		string product = null;
+		
 		public MainWindow(string[] Args)
 		{
-			Glade.XML gxml = new Glade.XML(null, "gui.glade", "MainWindow", null);
+			gxml = new Glade.XML(null, "gui.glade", "MainWindow", null);
 			gxml.Autoconnect(this);
 
 			events = new Queue<Event>();
@@ -164,27 +172,23 @@ namespace PyroGui
 			
 			bugz = new Bugzilla("http://bugzilla.gnome.org/");
 			BugDB.bugz = bugz;
+			if (Args.Length !=0)
+				product = Args[0];
 
 			todo = new Queue<Bug>();
-			if (Args.Length!=0)
-			{
-				int id = int.Parse(Args[0]);
-				Bug b = Bug.getExisting(id);
-				if (b == null)
-					b = new Bug(id,bugz);
-				todo.Enqueue(b);
-			}
 			ready();
+			hasprocess = true;
 			GLib.Idle.Add(new GLib.IdleHandler(processTask));
 			notify = new ThreadNotify (new ReadyEvent (ready));
 		}
 
 		void ready ()
 		{
+			if (doing)
+				return;
 			if (events.Count>0)
 			{
 				Console.WriteLine("grab event");
-				doing = true;
 				Event e = events.Dequeue();
 				lblStatus.Text = e.text;
 				this.dupl.bug = null;
@@ -204,13 +208,33 @@ namespace PyroGui
 						Console.WriteLine("curr: {0}",e.b.id);
 						this.curr.bug = e.b;
 						this.curr.showBug(e.r==BugEvent.NoMatch || this.dupl.bug!=null);
+						((Window)gxml.GetWidget("MainWindow")).Title = "Pyro (*)";
+						doing = true;
+						break;
+					case BugEvent.RanOut:
+						this.curr.clear();
+						if (events.Count!=0)
+						{
+							events.Enqueue(e);
+							lblStatus.Text = "dunno";
+						}
+						if (!hasprocess && deltas.Count!=0)
+						{
+							hasprocess = true;
+							GLib.Idle.Add(new GLib.IdleHandler(processTask));
+						}
+						break;
+					default:
 						break;
 				}
 				Console.WriteLine("grab event done");
+				if (!taskLock)
+					endTask();
 			}
 			else
 			{
-				lblStatus.Text = "No more events";
+				lblStatus.Text = "Looking for new events...";
+				((Window)gxml.GetWidget("MainWindow")).Title = "Pyro";
 				this.curr.clear();
 				this.dupl.clear();
 			}
@@ -218,27 +242,42 @@ namespace PyroGui
 
 		private void postEvent(Event e)
 		{
-			Console.WriteLine("\npostEvent\n");
+			Console.WriteLine("\npostEvent {0}\n",e.r);
 			events.Enqueue(e);
 			if (!doing)
 			{
-				Console.WriteLine("\nnotify\n");
+				Console.WriteLine("notify\n");
 				notify.WakeupMain();
 			}
 		}
 
 		private void postChange(Delta d)
 		{
-			Console.WriteLine(d);
+			Console.WriteLine("Change: {0}, id: {1}",d.c,d.b.id);
 			deltas.Enqueue(d);
+			if (!doing)
+			{
+				Console.WriteLine("\nnotify\n");
+				notify.WakeupMain();
+			}
+			if (!hasprocess)
+			{
+				hasprocess = true;
+				GLib.Idle.Add(new GLib.IdleHandler(processTask));
+			}
 		}
 
 		bool taskLock = false;
+
+		bool didcorebugs = false;
 		
 		public bool processTask()
 		{
 			if (taskLock)
-				return true;
+			{
+				hasprocess = false;
+				return false;
+			}
 			if (!bugz.loggedIn)
 			{
 				try
@@ -268,28 +307,71 @@ namespace PyroGui
 					case BugChange.MarkDupe:
 						d.b.setDupe(new Response(endTask),d.dup);
 						break;
+					case BugChange.MarkDone:
+						BugDB.DB.setDone(d.b.id);
+						endTask();
+						break;
 					default:
 						throw new Exception();
 				}
+				d.b.clearRaw();
 				return true;
 			}
-			if (events.Count>=1)
-				return true;
-			if (events.Count<1)
+			if (events.Count<20)
 			{
-				Console.WriteLine("\nlooking for bugs\n");
 				taskLock = true;
 				if (todo.Count == 0)
-					new Bug(0,bugz).corebugs(new Response(extraBugs));
+				{
+					if (!didcorebugs)
+					{
+						didcorebugs = true;
+						Console.WriteLine("\nlooking for bugs\n");
+						if (product==null)
+							new Bug(0,bugz).corebugs(new Response(extraBugs));
+						else
+						{
+							try
+							{
+								int id = Int32.Parse(product);
+								new Bug(0,bugz).numbered(id,id+3000,new Response(extraBugs));
+							}
+							catch (FormatException)
+							{
+								new Bug(0,bugz).product(product,new Response(extraBugs));
+							}
+						}
+					}
+					else
+					{
+						if (!didranout)
+						{
+							didranout = true;
+							postEvent(new Event(BugEvent.RanOut,null,null,"Ran out of bugs!"));
+						}
+							
+						endTask();
+						hasprocess = false;
+						return false;
+					}
+				}
 				else
-					nextBug();
+					nextBug(null);
 			}
 			return true;
 		}
 
+		private void endTask() {endTask(null,null,null);}
 		private void endTask(object res, object data, Response r)
 		{
 			taskLock = false;
+			if (!hasprocess && !didranout)
+			{
+				hasprocess = true;
+				GLib.Idle.Add(new GLib.IdleHandler(processTask));
+			}
+			if (!doing)
+				notify.WakeupMain();
+			Response.invoke(r,null);	
 		}
 
 		private void extraBugs(object res, object data, Response r)
@@ -297,18 +379,21 @@ namespace PyroGui
 			Bug []bugs = (Bug[])res;
 			foreach(Bug b in bugs)
 			{
-				todo.Enqueue(b);
+				if (!BugDB.DB.done(b.id))
+					todo.Enqueue(b);
+				else
+					Console.WriteLine("{0} is marked as done",b.id);
 			}
-			nextBug();
+			nextBug(r);
 		}
 
 		private Bug bug = null;
 		private Stacktrace st = null;
 
-		private void nextBug()
+		private void nextBug(Response r)
 		{
 			bug = todo.Dequeue();
-			bug.triageable(new Response(nextTriageable));
+			bug.triageable(new Response(nextTriageable,r));
 		}
 
 		private void nextTriageable(object res, object data, Response r)
@@ -321,9 +406,11 @@ namespace PyroGui
 			else
 			{
 				Console.WriteLine("{0} is not triageable",bug.id);
+				BugDB.DB.setDone(bug.id);
 				bug.describe();
-				taskLock = false;
+				endTask();
 			}
+			Response.invoke(r,null);
 		}
 
 		private void grabStacktrace(object res, object data, Response r)
@@ -332,7 +419,7 @@ namespace PyroGui
 			if (st.usable())
 				BugDB.DB.similar(bug.id,new Response(moreStacktraces,r, data));	
 			else
-				bug.getValues("Status",new Response(testNeedinfo,null,data));
+				bug.getValues("Status",new Response(testNeedinfo,r,data));
 			bug.describe();	
 		}
 
@@ -340,13 +427,13 @@ namespace PyroGui
 		{
 			if (res!=null)
 			{
-				Stacktrace st = (Stacktrace)res;
-				Bug b2 = BugDB.DB.getExisting(st.id);
+				Bug b2 = (Bug)res;
 				postEvent(new Event(BugEvent.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
-				taskLock = false;
+				endTask();
+				Response.invoke(r,null);
 			}
 			else
-				bug.similar(new Response(testSimilar,null,data));
+				bug.similar(new Response(testSimilar,r,data));
 		}
 
 		private void testNeedinfo(object res, object data, Response r)
@@ -354,7 +441,8 @@ namespace PyroGui
 			StringHash values = (StringHash)res;
 			if (values["Status"]=="UNCONFIRMED")
 				postEvent(new Event(BugEvent.BadStacktrace,bug,null, "Crap stacktrace?"));
-			taskLock = false;
+			endTask();	
+			Response.invoke(r,null);
 		}
 
 		private Queue<Bug> dupe = null;
@@ -362,19 +450,19 @@ namespace PyroGui
 		private void testSimilar(object res, object data, Response r)
 		{
 			dupe = new Queue<Bug>((Bug[])res);
-			if (!checkDupe()) // nothing to check
-				bug.getValues("Status",new Response(testNeedinfoNoMatch,null,data));
+			if (!checkDupe(r)) // nothing to check
+				bug.getValues("Status",new Response(testNeedinfoNoMatch,r,data));
 		}
 
-		private bool checkDupe()
+		private bool checkDupe(Response r)
 		{
 			if (dupe.Count == 0)
 				return false;
 			Bug b2 = dupe.Dequeue();
-			if (bug.id == b2.id)
-				return checkDupe();	
+			if (bug.id <= b2.id)
+				return checkDupe(r);	
 			else
-				b2.getStacktrace(new Response(checkDupeStacktrace,null,b2));
+				b2.getStacktrace(new Response(checkDupeStacktrace,r,b2));
 			return true;	
 		}
 
@@ -385,13 +473,13 @@ namespace PyroGui
 			if (st == st2)
 			{
 				postEvent(new Event(BugEvent.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
-				taskLock = false;
+				endTask();
 			}
 			else
 			{
 				Console.WriteLine("{0} not a match for {1}",b2.id,bug.id);
-				if (!checkDupe())
-					bug.getValues("Status",new Response(testNeedinfoNoMatch,null,data));
+				if (!checkDupe(r))
+					bug.getValues("Status",new Response(testNeedinfoNoMatch,r,data));
 			}
 		}
 
@@ -405,7 +493,8 @@ namespace PyroGui
 			}
 			else
 				Console.WriteLine("Not unconfirmed, so not need better trace");
-			taskLock = false;
+			endTask();
+			Response.invoke(r,null);
 		}
 
 		public static void Main(string[] args)
@@ -433,6 +522,7 @@ namespace PyroGui
 		
 		public void OnNoClicked(object o, EventArgs args)
 		{
+			postChange(new Delta(BugChange.MarkDone,curr.bug,null));
 			doing = false;
 			notify.WakeupMain();
 		}

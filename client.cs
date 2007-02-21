@@ -60,9 +60,15 @@ namespace Pyro
 			Response re = null;
 			if (next!=null)
 				re = (Response)next;
-			print();
-			Console.WriteLine("Invoking {0} of {1} ({2} {3})",call.Method, call.Target,input,re);
+			//print();
+			//Console.WriteLine("Invoking {0} of {1} ({2} {3})",call.Method, call.Target,input,re);
 			call(r,input,re);
+		}
+
+		public static void invoke(Response r, object val)
+		{
+			if (r!=null)
+				Response.invoke(r,val);
 		}
 	}
 
@@ -74,6 +80,7 @@ namespace Pyro
 		public int dupid = -1;
 
 		string _raw = null;
+		public string stackhash = null;
 		Bugzilla bugz = null;
 
 		public int id
@@ -83,16 +90,34 @@ namespace Pyro
 			}
 		}
 
+		public void clearRaw()
+		{
+			_raw = null;
+		}
+
+		public void setStackHash(Stacktrace st)
+		{
+			BugDB.DB.setStackHash(id,st);
+			stackhash = st.getHash();
+		}
+
+		public void setStackHash(string st)
+		{
+			stackhash = st;
+		}
+
 		public static Bug getExisting(int id)
 		{
 			return BugDB.DB.getExisting(id);
 		}
 
-		public void setRaw(string s)
+		public void setValue(string s, string val)
 		{
-			this._raw = s;
-			this.values = null;
-			BugDB.DB.setExisting(this.id,s);
+			if (val == "")
+				return;
+			if (values == null)
+				values = new StringHash();
+			values[s] = val;	
 		}
 		
 		public void getRaw(Response r) { getRaw(false,r);}
@@ -101,12 +126,15 @@ namespace Pyro
 			if (this._raw == null || ignorecache)
 				bugz.getBug(this.id,ignorecache,new Response(getRawResponse,r));
 			else
-				r.invoke(this._raw);
+				Response.invoke(r,this._raw);
 		}
 
 		public void getRawResponse(object data, object input, Response chain)
 		{
-			this.setRaw((string)data);
+			this._raw = (string)data;
+			this.values = null;
+			BugDB.DB.setExisting(this.id);
+			BugDB.DB.setValues(this.id,null);
 			chain.invoke(data);
 		}
 
@@ -131,7 +159,7 @@ namespace Pyro
 			if (this.comments == null)
 				getRaw(new Response(getCommentsCallback,r));
 			else
-				r.invoke(this.comments);
+				Response.invoke(r,this.comments);
 		}
 
 		private void getCommentsCallback(object o, object input, Response r)
@@ -147,7 +175,7 @@ namespace Pyro
 			}
 			//Console.WriteLine(ret.Count);
 			this.comments = (string[])ret.ToArray(typeof(string));
-			r.invoke(this.comments);
+			Response.invoke(r,this.comments);
 		}
 	
 		public void getValues(string idx, Response r)
@@ -157,7 +185,7 @@ namespace Pyro
 				getRaw(new Response(getValuesResponse,r));
 			}
 			else
-				r.invoke(values);
+				Response.invoke(r,values);
 		}
 
 		public void getValuesResponse(object res, object input,Response r)
@@ -173,7 +201,8 @@ namespace Pyro
 				//Console.WriteLine(value);
 				this.values.Add(m.Groups[1].Captures[0].Value.Trim(),value);
 			}
-			r.invoke(values);
+			BugDB.DB.setValues(id,values);
+			Response.invoke(r,values);
 		}
 
 		public void describe()
@@ -196,16 +225,21 @@ namespace Pyro
 
 		public void triageable(Response r)
 		{
-			getValues("Status",new Response(triageableResponse,r));
+			if (BugDB.DB.done(id))
+				Response.invoke(r,false);
+			else	
+				getValues("Status",new Response(triageableResponse,r));
 		}
 
 		private void triageableResponse(object res, object input, Response r)
 		{
 			StringHash values = (StringHash)res;
 			if ((values["Status"]!="UNCONFIRMED" && values["Status"]!="NEEDINFO") || values["Severity"]!="critical" || values["Priority"]!="High")
-				r.invoke(false);
+				Response.invoke(r,false);
+			else if (_raw!=null && _raw.IndexOf("Traceback (most recent call last):")!=-1) // python, can't triage
+				Response.invoke(r,false);
 			else
-				r.invoke(true);
+				Response.invoke(r,true);
 		}
 		
 		public void getStacktrace(Response sr)
@@ -219,6 +253,7 @@ namespace Pyro
 		{
 			string[] comm = (string[]) curr;
 			Stacktrace st = new Stacktrace(this.id,comm[0]);
+			this.setStackHash(st);
 			chain.invoke(st);
 		}
 
@@ -235,7 +270,12 @@ namespace Pyro
 		private void parseSearchResults(object curr, object input, Response chain)
 		{
 			StringHash[] core = Bug.tableParser((string)curr);
+			//throw new Exception();
 			ArrayList bugs = new ArrayList();
+			bool dolimit = true;
+			int limit = 15;
+			if (input!=null)
+				dolimit = (bool)input;
 			foreach(StringHash h in core)
 			{
 				int id = System.Convert.ToInt32(h["ID"],10);
@@ -247,13 +287,30 @@ namespace Pyro
 					assignKeys(b,h);
 				}
 				bugs.Add(b);
+				Console.WriteLine("new bug {0}",b.id);
+				if (dolimit)
+				{
+					limit--;
+					if (limit == 0)
+						break;
+				}
 			}
 			chain.invoke(bugs.ToArray(typeof(Bug)));
 		}
 
 		public void corebugs(Response r)
 		{
-			bugz.corebugs(new Response(parseSearchResults, r));
+			bugz.corebugs(new Response(parseSearchResults, r, false));
+		}
+
+		public void product(string name, Response r)
+		{
+			bugz.product(name, new Response(parseSearchResults, r, false));
+		}
+
+		public void numbered(int id, int id2, Response r)
+		{
+			bugz.numbered(id,id2, new Response(parseSearchResults, r, false));
 		}
 
 		void assignKeys(Bug b,StringHash h)
@@ -281,8 +338,16 @@ namespace Pyro
 							case "NEW":
 								b.values[key] = h[key];
 								break;
+							case "CLOS":
+								b.values[key] = "CLOSED";
+								break;
+							case "REOP":
+								b.values[key] = "REOPENED";
+								break;
 							default:
-								throw new Exception(h[key]);
+								b.values[key] = h[key];
+								break;
+								//throw new Exception(h[key]);
 						}
 						break;
 					}
@@ -318,8 +383,16 @@ namespace Pyro
 							case "OBSO":
 								b.values[key] = "OBSOLETE";
 								break;
+							case "INVA":
+								b.values[key] = "INVALID";
+								break;
+							case "NOTX":
+								b.values[key] = "NOTXIMIAN";
+								break;
 							default:
-								throw new Exception(h[key]);
+								b.values[key] = h[key];
+								break;
+								//throw new Exception(h[key]);
 						}
 						break;
 					}
@@ -342,8 +415,13 @@ namespace Pyro
 							case "tri":
 								b.values["Severity"] = "trivial";
 								break;
+							case "blo":
+								b.values["Severity"] = "blocker";
+								break;
 							default:
-								throw new Exception(h[key]);
+								b.values["Severity"] = h[key];
+								break;
+								//throw new Exception(h[key]);
 						}
 						break;
 					}
@@ -357,8 +435,13 @@ namespace Pyro
 							case "Nor":
 								b.values["Priority"] = "Normal";
 								break;
+							case "Urg":
+								b.values["Priority"] = "Urgent";
+								break;
 							default:
-								throw new Exception(h[key]);
+								b.values["Priority"] = h[key];
+								break;
+								//throw new Exception(h[key]);
 						}
 						break;
 					}
@@ -416,8 +499,11 @@ namespace Pyro
 					rows.Add(current);
 					/*foreach(string key in current.Keys)
 					{
-						Console.WriteLine("row: {0} = {1}",key,current[key]);
+						Console.WriteLine("row: {0} = {1}","ID",current["ID"]);
+						break;
 					}*/
+					/*if (rows.Count>30)
+						throw new Exception();*/
 				}
 			}
 			return (StringHash[])rows.ToArray(typeof(StringHash));
@@ -440,7 +526,7 @@ namespace Pyro
 			else
 			{
 				Console.WriteLine("already marked as needinfo");
-				r.invoke(null);
+				Response.invoke(r,null);
 			}
 		}
 
@@ -475,7 +561,7 @@ Thanks in advance!";
 			else
 			{
 				Console.WriteLine("already resolved");
-				r.invoke(null);
+				Response.invoke(r,null);
 			}
 		}
 
@@ -563,6 +649,7 @@ Thanks in advance!";
 			this.id = id;
 			int limit = 0;
 			this.content = new List<string[]>();
+			string last = null;
 			bool seen_signal = false;
 			int idx = -1;
 			foreach (Match m in Regex.Matches(this.raw, Stacktrace.pattern, RegexOptions.Singleline))
@@ -580,7 +667,7 @@ Thanks in advance!";
 				{
 					string[] tostore = new string[2];
 					tostore[0] = m.Groups[2].Captures[0].Value;
-					if (tostore[0] == "__kernel_vsyscall" || tostore[0] =="raise" || tostore[0] == "abort")
+					if ((last!=null && tostore[0]==last) || tostore[0] == "__kernel_vsyscall" || tostore[0] =="raise" || tostore[0] == "abort" || tostore[0] == "g_free" || tostore[0] == "memcpy" || tostore[0] == "NSGetModule")
 						continue;
 
 					if (m.Groups[3].Captures.Count!=0)
@@ -592,6 +679,7 @@ Thanks in advance!";
 					if (seen_signal)
 					{
 						this.content.Add(tostore);
+						last = tostore[0];
 						limit++;
 						if (limit==6)
 							break;
@@ -651,6 +739,16 @@ Thanks in advance!";
 		public override int GetHashCode()
 		{
 			return this.content.GetHashCode();
+		}
+
+		public string getHash()
+		{
+			StringBuilder ret = new StringBuilder();
+			foreach (string[] s in this.content)
+			{
+				ret.Append(String.Format("{0}:{1}:",s[0],s[1]));
+			}
+			return ret.ToString();
 		}
 
 		public bool usable()
@@ -796,7 +894,7 @@ Thanks in advance!";
 			if (ignorecache || !fi.Exists)
 			{
 				getDataState state = new getDataState();
-				Console.WriteLine("\nNEW!\n");
+				Console.WriteLine("\nNEW!");
 				state.req = genRequest(url);
 				state.path = path;
 				state.req.BeginGetResponse(new AsyncCallback(getDataCallback),new Response(getDataShim,chain,state));
@@ -817,6 +915,7 @@ Thanks in advance!";
 			getDataState st = (getDataState)r.input;
 			HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
 			StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+			Console.WriteLine("\nResponse for {0}\n",st.path);
 			try
 			{
 				ret = sr.ReadToEnd();
@@ -834,7 +933,7 @@ Thanks in advance!";
 			TextWriter outFile = new StreamWriter(st.path);
 			outFile.Write(strip(ret));
 			outFile.Close();
-			r.invoke(ret);
+			Response.invoke(r,ret);
 		}
 
 		private void getDataShim(object res, object input, Response chain)
@@ -859,9 +958,19 @@ Thanks in advance!";
 			getData("dupfinder/simple-dup-finder.cgi?id="+id, String.Concat(id)+"-dupe", r);
 		}
 
+		public void product(string name, Response r)
+		{
+			getData("buglist.cgi?query=product%3A"+name+"+comment-count%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh",name,true,r);
+		}
+
+		public void numbered(int id, int id2, Response r)
+		{
+			getData(String.Format("buglist.cgi?query=comment-count%3A0+severity%3Acritical+priority%3Ahigh+bug-number%3E%3D{0}+bug-number%3C%3D{1}+status%3Aunconfirmed",id,id2),"numbered",true,r);
+		}
+
 		public void corebugs(Response r)
 		{
-			getData("reports/core-bugs-today.cgi","corebugs",new Response(corebugsMatcher,r));
+			getData("reports/core-bugs-today.cgi","corebugs",true,new Response(corebugsMatcher,r));
 		}
 
 		private void corebugsMatcher(object res, object input, Response r)
@@ -869,7 +978,7 @@ Thanks in advance!";
 			string corelist = (string)res;
 			Match m = Regex.Match(corelist,"(buglist.cgi\\?bug_id=[^\"]+)");
 			Console.WriteLine(r);
-			getData(m.ToString(),"corebugs-real",r);
+			getData(m.ToString(),"corebugs-real",true,r);
 		}
 
 		public void stackDupe(Stacktrace st, Response r)
@@ -887,10 +996,10 @@ Thanks in advance!";
 			StringBuilder query = new StringBuilder();
 			foreach(string s in values.Keys)
 			{
-				Console.WriteLine("{0} = {1}",s,values[s]);
+				Console.WriteLine("{0} = {1}",s,values[s].Replace("&#64;","%40"));
 				if (query.Length!=0)
 					query.Append("&");
-				query.AppendFormat("{0}={1}",s,values[s]);
+				query.AppendFormat("{0}={1}",s,values[s].Replace("&#64;","%40"));
 			}
 			ASCIIEncoding encoding=new ASCIIEncoding();
 			byte[]  data = encoding.GetBytes(query.ToString());
@@ -904,6 +1013,7 @@ Thanks in advance!";
 			Stream newStream=myRequest.GetRequestStream();
 			newStream.Write(data,0,data.Length);
 			newStream.Close();
+			Console.WriteLine("Doing bug update");
 
 			HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
 			StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
@@ -918,8 +1028,11 @@ Thanks in advance!";
 			}
 			sr.Close();
 			TextWriter outFile = new StreamWriter("change-test");
+			outFile.Write(query.ToString());
+			outFile.Write("\n\n");
 			outFile.Write(ret);
 			outFile.Close();
+			Console.WriteLine("Bug update complete");
 			return false;
 		}
 	}
@@ -945,7 +1058,7 @@ Thanks in advance!";
 			if (!reader.Read())
 			{
 				dbcmd = dbcon.CreateCommand();
-				dbcmd.CommandText = "create table bugs(id integer primary key, raw blob)";
+				dbcmd.CommandText = "create table bugs(id integer primary key, done boolean, Status text, Priority text, Severity Text, stackhash text)";
 				dbcmd.ExecuteReader();
 			}
 			bugs = new Dictionary<int,Bug>();
@@ -963,7 +1076,7 @@ Thanks in advance!";
 		{
 			public Bug old;
 			public Stacktrace oldst;
-			public Stack<int> todo;
+			public Stack<Bug> todo;
 		}
 		
 		public void similar(int id, Response r)
@@ -977,13 +1090,72 @@ Thanks in advance!";
 		{
 			SimilarTodo st = (SimilarTodo) input;
 			st.oldst = (Stacktrace)res;
-			st.todo = new Stack<int>();
+			st.todo = new Stack<Bug>();
+			string hash = st.oldst.getHash();
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select id from bugs where id!="+String.Concat(st.old.id);
+			dbcmd.CommandText = "select id from bugs where id<"+String.Concat(st.old.id);
 			IDataReader reader = dbcmd.ExecuteReader();
 			while (reader.Read())
-				st.todo.Push(reader.GetInt32(0));
+			{
+				Bug b = getExisting(reader.GetInt32(0));
+				if (b.id == 0)
+					continue;
+				if (b.stackhash == null)
+					st.todo.Push(b);
+				else if (b.stackhash == hash)
+				{
+					Response.invoke(r,b);
+					return;
+				}
+			}
 			nextSimilar(null,st,r);	
+		}
+
+		public bool done(int id)
+		{
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "select done from bugs where id="+String.Concat(id);
+			IDataReader reader = dbcmd.ExecuteReader();
+			if (reader.Read())
+				return reader.GetInt32(0)!=0;
+			else
+				return false;
+		}
+
+		public void setValues(int id, StringHash values)
+		{
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			if (values == null)
+				dbcmd.CommandText = "update bugs set Status=\"\",Priority=\"\",Severity=\"\"";
+			else
+			{
+				dbcmd.CommandText = "update bugs set Status=\""+values["Status"]+"\"";
+				if (values.ContainsKey("Priority"))
+					dbcmd.CommandText += ",Priority=\""+values["Priority"]+"\"";
+				else
+					dbcmd.CommandText += ",Priority=\"\"";
+				if (values.ContainsKey("Severity"))
+					dbcmd.CommandText += ",Severity=\""+values["Severity"]+"\"";
+				else	
+					dbcmd.CommandText += ",Severity=\"\"";
+			}
+			dbcmd.CommandText += " where id="+String.Concat(id);
+			dbcmd.ExecuteNonQuery();
+		}
+		
+		public void setStackHash(int id, Stacktrace st)
+		{
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "update bugs set stackhash=@hash where id="+String.Concat(id);
+			dbcmd.Parameters.Add(new SqliteParameter("@hash",st.getHash()));	
+			dbcmd.ExecuteNonQuery();
+		}
+
+		public void setDone(int id)
+		{
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "update bugs set done=1 where id="+String.Concat(id);
+			dbcmd.ExecuteNonQuery();
 		}
 
 		private void nextSimilar(object res, object input, Response r)
@@ -992,22 +1164,26 @@ Thanks in advance!";
 			if (res!=null)
 			{
 				Stacktrace st2 = (Stacktrace)res;
+				getExisting(st2.id).clearRaw();
 				if (st2 == st.oldst)
 				{
-					r.invoke(st2);
+					Response.invoke(r,getExisting(st2.id));
 					return;
 				}
 			}
-			if (st.todo.Count == 0)
+			while (true)
 			{
-				r.invoke(null);
-				return;
+				if (st.todo.Count == 0)
+				{
+					Response.invoke(r,null);
+					return;
+				}
+				Bug app = st.todo.Pop();
+				if (app == null)
+					throw new Exception(String.Concat(app.id));
+				app.getStacktrace(new Response(nextSimilar,r,st));
+				break;
 			}
-			int newid = st.todo.Pop();
-			Bug app = getExisting(newid);
-			if (app == null)
-				throw new Exception(String.Concat(newid));
-			app.getStacktrace(new Response(nextSimilar,r,st));
 		}
 
 		public Bug getExisting(int id)
@@ -1015,12 +1191,19 @@ Thanks in advance!";
 			if (bugs.ContainsKey(id))
 				return bugs[id];
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select raw from bugs where id="+String.Concat(id);
+			dbcmd.CommandText = "select Severity,Priority,Status,stackhash from bugs where id="+String.Concat(id);
 			IDataReader reader = dbcmd.ExecuteReader();
 			if (reader.Read())
 			{
 				Bug ret = new Bug(id,bugz);
-				ret.setRaw(reader.GetString(0));
+				if (!reader.IsDBNull(0))
+					ret.setValue("Severity",reader.GetString(0));
+				if (!reader.IsDBNull(1))
+					ret.setValue("Priority",reader.GetString(1));
+				if (!reader.IsDBNull(2))
+					ret.setValue("Status",reader.GetString(2));
+				if (!reader.IsDBNull(3))
+					ret.setStackHash(reader.GetString(3));
 				bugs[id] = ret;
 				return ret;
 			}
@@ -1028,21 +1211,19 @@ Thanks in advance!";
 				return null;
 		}
 
-		public void setExisting(int id, string content)
+		public void setExisting(int id)
 		{
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select raw from bugs where id="+String.Concat(id);
+			dbcmd.CommandText = "select done from bugs where id="+String.Concat(id);
 			IDataReader reader = dbcmd.ExecuteReader();
 
-			IDbCommand dbcmd2 = dbcon.CreateCommand();
-
 			if (!reader.Read())
-				dbcmd2.CommandText = "insert into bugs (id,raw) values(@id,@raw)";
-			else	
-				dbcmd2.CommandText = "update bugs set raw = @raw where id = @id";
-			dbcmd2.Parameters.Add(new SqliteParameter("@raw",content));	
-			dbcmd2.Parameters.Add(new SqliteParameter("@id",id));	
-			dbcmd2.ExecuteNonQuery();
+			{
+				IDbCommand dbcmd2 = dbcon.CreateCommand();
+				dbcmd2.CommandText = "insert into bugs (id,done) values(@id,0)";
+				dbcmd2.Parameters.Add(new SqliteParameter("@id",id));	
+				dbcmd2.ExecuteNonQuery();
+			}
 		}
 	}
 }
