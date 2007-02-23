@@ -68,7 +68,7 @@ namespace Pyro
 		public static void invoke(Response r, object val)
 		{
 			if (r!=null)
-				Response.invoke(r,val);
+				r.invoke(val);
 		}
 	}
 
