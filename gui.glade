@@ -2,6 +2,7 @@
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
 <!--*- mode: xml -*-->
 <glade-interface>
+  <requires lib="gnome"/>
   <widget class="GtkWindow" id="MainWindow">
     <property name="visible">True</property>
     <property name="title">Pyro</property>
@@ -44,6 +45,15 @@
               </widget>
               <packing>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GnomeHRef" id="hrfBrowser">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Open in browser</property>
+              </widget>
+              <packing>
+                <property name="position">3</property>
               </packing>
             </child>
           </widget>

@@ -86,6 +86,7 @@ namespace PyroGui
 		[Widget] Frame frmCurrent;
 		[Widget] Frame frmDupl;
 		[Widget] Label lblStatus;
+		[Widget] Gnome.HRef hrfBrowser;
 
 		Queue<Bug> todo;
 		Bugzilla bugz;
@@ -168,6 +169,7 @@ namespace PyroGui
 
 			((Window)gxml.GetWidget("MainWindow")).Maximize();
 			((Window)gxml.GetWidget("MainWindow")).ShowAll();
+			hrfBrowser.Clicked += OnNoClicked;
 			//GlobalProxySelection.Select = new WebProxy("http://taz:8118");
 			
 			bugz = new Bugzilla("http://bugzilla.gnome.org/");
@@ -209,6 +211,7 @@ namespace PyroGui
 						this.curr.bug = e.b;
 						this.curr.showBug(e.r==BugEvent.NoMatch || this.dupl.bug!=null);
 						((Window)gxml.GetWidget("MainWindow")).Title = "Pyro (*)";
+						hrfBrowser.Url = "http://bugzilla.gnome.org/show_bug.cgi?id="+this.curr.bug.id;
 						doing = true;
 						break;
 					case BugEvent.RanOut:
