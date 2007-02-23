@@ -997,11 +997,13 @@ Thanks in advance!";
 		public void stackDupe(Stacktrace st, Response r)
 		{
 			StringBuilder query = new StringBuilder("meta-status:all");
+			StringBuilder name = new StringBuilder("stackdupe");
 			foreach(string[] s in st.content)
 			{
 				query.Append(" \""+s[0]+"\"");
+				name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
 			}
-			getData("buglist.cgi?query="+System.Web.HttpUtility.UrlEncode(query.ToString()),String.Concat(st.id)+"-stackdupe",r);
+			getData("buglist.cgi?query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
 		}
 
 		public bool changeBug(StringHash values)
