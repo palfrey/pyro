@@ -973,7 +973,7 @@ Thanks in advance!";
 
 		public void product(string name, Response r)
 		{
-			getData("buglist.cgi?query=product%3A"+name+"+comment-count%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh",name,true,r);
+			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+comment-count%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh",name,true,r);
 		}
 
 		public void numbered(int id, int id2, Response r)
