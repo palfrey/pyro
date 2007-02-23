@@ -394,7 +394,7 @@ namespace PyroGui
 		private void endTask(object res, object data, Response r)
 		{
 			taskLock = false;
-			if (!hasprocess && !didranout)
+			if (!hasprocess && (!didranout || deltas.Count>0))
 			{
 				hasprocess = true;
 				GLib.Idle.Add(new GLib.IdleHandler(processTask));
