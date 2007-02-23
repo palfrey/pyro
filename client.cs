@@ -235,11 +235,24 @@ namespace Pyro
 		{
 			StringHash values = (StringHash)res;
 			if ((values["Status"]!="UNCONFIRMED" && values["Status"]!="NEEDINFO") || values["Severity"]!="critical" || values["Priority"]!="High")
+			{
 				Response.invoke(r,false);
-			else if (_raw!=null && _raw.IndexOf("Traceback (most recent call last):")!=-1) // python, can't triage
-				Response.invoke(r,false);
-			else
-				Response.invoke(r,true);
+				return;
+			}
+			if (_raw!=null)
+			{
+				if (_raw.IndexOf("Traceback (most recent call last):")!=-1) // python, can't triage
+				{
+					Response.invoke(r,false);
+					return;
+				}
+				else if (_raw.IndexOf("Thanks for taking the time to report this bug")!=-1) // triaged!
+				{
+					Response.invoke(r,false);
+					return;
+				}
+			}
+			Response.invoke(r,true);
 		}
 		
 		public void getStacktrace(Response sr)
