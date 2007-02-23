@@ -393,8 +393,19 @@ namespace PyroGui
 
 		private void nextBug(Response r)
 		{
-			bug = todo.Dequeue();
-			bug.triageable(new Response(nextTriageable,r));
+			if (todo.Count==0)
+			{
+				if (!didranout)
+				{
+					didranout = true;
+					postEvent(new Event(BugEvent.RanOut,null,null,"Ran out of bugs!"));
+				}
+			}
+			else
+			{
+				bug = todo.Dequeue();
+				bug.triageable(new Response(nextTriageable,r));
+			}
 		}
 
 		private void nextTriageable(object res, object data, Response r)
