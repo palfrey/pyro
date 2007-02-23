@@ -88,6 +88,10 @@ namespace PyroGui
 		[Widget] Label lblStatus;
 		[Widget] Gnome.HRef hrfBrowser;
 
+		[Widget] Dialog dlgLogin;
+		[Widget] Entry entUsername;
+		[Widget] Entry entPassword;
+
 		Queue<Bug> todo;
 		Bugzilla bugz;
 
@@ -284,9 +288,29 @@ namespace PyroGui
 			}
 			if (!bugz.loggedIn)
 			{
+				Glade.XML gxml2 = new Glade.XML(null, "gui.glade", "dlgLogin", null);
+				gxml2.Autoconnect(this);
+				dlgLogin.Modal = true;
+				ResponseType resp = (ResponseType)dlgLogin.Run();
+				dlgLogin.Hide();
+				switch(resp)
+				{
+					case ResponseType.Ok:
+						Console.WriteLine("ok");
+						break;
+					case ResponseType.None:	
+					case ResponseType.Cancel:
+					case ResponseType.DeleteEvent:
+						Console.WriteLine("cancel");
+						postEvent(new Event(BugEvent.LoginFailure,"Didn't login"));
+						return false;
+					default:
+						Console.WriteLine("id={0}",resp);
+						throw new Exception();
+				}
 				try
 				{
-					if (!bugz.login("palfrey@tevp.net","epsilon"))
+					if (!bugz.login(entUsername.Text,entPassword.Text))
 					{
 						postEvent(new Event(BugEvent.LoginFailure,"Login failure"));
 						return false;
