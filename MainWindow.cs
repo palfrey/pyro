@@ -540,6 +540,7 @@ namespace PyroGui
 
 		public static void Main(string[] args)
 		{
+			Gdk.Threads.Init();
 			Application.Init();
 			new MainWindow(args);
 			Application.Run();
