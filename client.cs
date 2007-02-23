@@ -810,7 +810,7 @@ Thanks in advance!";
 		private HttpWebRequest genRequest(string path)
 		{
 			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+path);
-			myRequest.UserAgent = "blah";
+			myRequest.UserAgent = "Pyro bug triager/0.1";
 			if (wp!=null)
 				myRequest.Proxy = wp;
 			myRequest.CookieContainer = cookies;
