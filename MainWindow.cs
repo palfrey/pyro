@@ -202,6 +202,8 @@ namespace PyroGui
 				switch(e.r)
 				{
 					case BugEvent.LoginFailure:
+						doing = true;
+						break;
 					case BugEvent.LoginSuccess:
 						break;
 					case BugEvent.Duplicate:
