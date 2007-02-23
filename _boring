@@ -33,3 +33,5 @@
 cache
 .*\.exe.*
 .*\.dll.*
+bugs.db
+cookies.dat
