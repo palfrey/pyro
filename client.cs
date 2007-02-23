@@ -1067,13 +1067,11 @@ Thanks in advance!";
 		{
 			dbcon = new SqliteConnection("URI=file:bugs.db,version=3");
 			dbcon.Open();
-			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select name from sqlite_master where type='table' and name='bugs'";
+			IDbCommand dbcmd = new SqliteCommand("select name from sqlite_master where type='table' and name='bugs'",dbcon);
 			IDataReader reader = dbcmd.ExecuteReader();
 			if (!reader.Read())
 			{
-				dbcmd = dbcon.CreateCommand();
-				dbcmd.CommandText = "create table bugs(id integer primary key, done boolean, Status text, Priority text, Severity Text, stackhash text)";
+				dbcmd = new SqliteCommand("create table bugs(id integer primary key, done boolean, Status text, Priority text, Severity Text, stackhash text)",dbcon);
 				dbcmd.ExecuteReader();
 			}
 			bugs = new Dictionary<int,Bug>();
