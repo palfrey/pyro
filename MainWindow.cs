@@ -218,6 +218,7 @@ namespace PyroGui
 							events.Enqueue(e);
 							lblStatus.Text = "dunno";
 						}
+						((Window)gxml.GetWidget("MainWindow")).Title = "Pyro (Done)";
 						if (!hasprocess && deltas.Count!=0)
 						{
 							hasprocess = true;
