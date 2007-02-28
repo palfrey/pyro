@@ -954,8 +954,17 @@ Thanks in advance!";
 
 		private void getDataShim(object res, object input, Response chain)
 		{
-			//throw new Exception();
-			chain.invoke(res);
+			try
+			{
+				chain.invoke(res);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("getDataShim saw an exception");
+				Console.WriteLine(e.Message);
+				Console.WriteLine(e.StackTrace);
+				throw e;
+			}
 		}
 
 		public string bugPath(int id)
