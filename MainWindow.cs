@@ -1,9 +1,3 @@
-/*
- * User: Tom Parker
- * Date: 06/02/2007
- * Time: 01:18
- * 
- */
 using Glade;
 using Gtk;
 using System;
@@ -407,13 +401,18 @@ namespace PyroGui
 		private void extraBugs(object res, object data, Response r)
 		{
 			Bug []bugs = (Bug[])res;
+			List<int> ids = new List<int>();
 			foreach(Bug b in bugs)
 			{
 				if (!BugDB.DB.done(b.id))
+				{
 					todo.Enqueue(b);
+					ids.Add(b.id);
+				}
 				else
 					Console.WriteLine("{0} is marked as done",b.id);
 			}
+			bugz.getBug(ids.ToArray(),null);
 			nextBug(r);
 		}
 

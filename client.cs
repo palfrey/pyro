@@ -1,4 +1,5 @@
 using System;
+using System.Xml;
 using System.Net;
 using System.IO;
 using System.Text;
@@ -24,6 +25,7 @@ namespace Pyro
 		public object next;
 		public object input;
 
+		private Response(){}
 		public Response(GenericResponse gr): this(gr,null,null) {}
 		public Response(GenericResponse gr, object next): this(gr,next,null) {}
 		public Response(GenericResponse gr, object next, object d)
@@ -55,13 +57,13 @@ namespace Pyro
 			Console.WriteLine("");
 		}
 		
-		public void invoke(object r)
+		public virtual void invoke(object r)
 		{
 			Response re = null;
 			if (next!=null)
 				re = (Response)next;
 			//print();
-			//Console.WriteLine("Invoking {0} of {1} ({2} {3})",call.Method, call.Target,input,re);
+			Console.WriteLine("Invoking {0} of {1} ({2} {3})",call.Method, call.Target,input,re);
 			call(r,input,re);
 		}
 
@@ -69,6 +71,18 @@ namespace Pyro
 		{
 			if (r!=null)
 				r.invoke(val);
+		}
+	}
+
+	public class VoidResponse: Response
+	{	
+		public VoidResponse(GenericResponse gr): base(gr,null,null) {}
+		public VoidResponse(GenericResponse gr, object next): base(gr,next,null) {}
+		public VoidResponse(GenericResponse gr, object next, object d):base(gr,next,d){}
+
+		public override void invoke(object r)
+		{
+			base.invoke(null);
 		}
 	}
 
@@ -124,7 +138,7 @@ namespace Pyro
 		public void getRaw(bool ignorecache, Response r)
 		{
 			if (this._raw == null || ignorecache)
-				bugz.getBug(this.id,ignorecache,new Response(getRawResponse,r));
+				bugz.getBug(new int [] {this.id},ignorecache,new Response(getRawResponse,r));
 			else
 				Response.invoke(r,this._raw);
 		}
@@ -165,16 +179,19 @@ namespace Pyro
 		private void getCommentsCallback(object o, object input, Response r)
 		{
 			string s = (string)o;
-			string pattern = "<pre id=\"comment_text_(\\d+)\">(.*?)</pre>";
-			ArrayList ret = new ArrayList();
+			string pattern = "<thetext>(.*?)</thetext>";
+			List<string> ret = new List<string>();
+			//Console.WriteLine(s);
 			foreach (Match m in Regex.Matches(s, pattern, RegexOptions.Singleline))
 			{
 				//Console.WriteLine(m.Groups[0].Captures.Count);
 				//Console.WriteLine(m.Groups[0].Captures[0].Value);
 				ret.Add(m.Groups[0].Captures[0].Value);
 			}
-			//Console.WriteLine(ret.Count);
-			this.comments = (string[])ret.ToArray(typeof(string));
+			if (ret.Count==0)
+				throw new Exception();
+			Console.WriteLine("Comments: {0}",ret.Count);
+			this.comments = ret.ToArray();
 			Response.invoke(r,this.comments);
 		}
 	
@@ -190,17 +207,22 @@ namespace Pyro
 
 		public void getValuesResponse(object res, object input,Response r)
 		{
-			string check = (string)res;
-			string pattern = @"<td>\s+<b>([^<:]+):</b>\s+</td>\s+<td>(.*?)</td>";
-			this.values = new StringHash();
-			foreach (Match m in Regex.Matches(check, pattern, RegexOptions.Singleline))
+			/*string check = (string)res;
+			string pattern = @"<td>\s+<b>([^<:]+):</b>\s+</td>\s+<td>(.*?)</td>";*/
+			StringHash mappings = new StringHash();
+			mappings.Add("long_desc",null); /* ignore comments */
+			mappings.Add("bug_status","Status");
+			mappings.Add("priority","Priority");
+			mappings.Add("bug_severity","Severity");
+			this.values = xmlParser((string)res,"bug",mappings)[0];
+			/*foreach (Match m in Regex.Matches(check, pattern, RegexOptions.Singleline))
 			{
 				//Console.WriteLine(m.ToString());
 				//Console.WriteLine(m.Groups[1].Captures[0].Value);
 				string value = Bug.stripAll(m.Groups[2].Captures[0].Value);
 				//Console.WriteLine(value);
 				this.values.Add(m.Groups[1].Captures[0].Value.Trim(),value);
-			}
+			}*/
 			BugDB.DB.setValues(id,values);
 			Response.invoke(r,values);
 		}
@@ -280,11 +302,19 @@ namespace Pyro
 			bugz.stackDupe((Stacktrace)curr, new Response(parseSearchResults,chain));
 		}
 
+		StringHash mappings = null;
+
 		private void parseSearchResults(object curr, object input, Response chain)
 		{
-			StringHash[] core = Bug.tableParser((string)curr);
+			if (mappings == null)
+			{
+				mappings = new StringHash();
+				mappings.Add("bz:id","ID");
+			}
+			
+			StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings);
 			//throw new Exception();
-			ArrayList bugs = new ArrayList();
+			List<Bug> bugs = new List<Bug>();
 			bool dolimit = true;
 			int limit = 15;
 			if (input!=null)
@@ -308,7 +338,8 @@ namespace Pyro
 						break;
 				}
 			}
-			chain.invoke(bugs.ToArray(typeof(Bug)));
+			//throw new Exception();
+			chain.invoke(bugs.ToArray());
 		}
 
 		public void corebugs(Response r)
@@ -326,44 +357,51 @@ namespace Pyro
 			bugz.numbered(id,id2, new Response(parseSearchResults, r, false));
 		}
 
+		Dictionary<string,Dictionary<string,string>> keys = null;
+
 		void assignKeys(Bug b,StringHash h)
 		{
+			if (keys == null)
+			{
+				keys = new Dictionary<string,Dictionary<string,string>>();
+				
+				Dictionary<string,string> Status = new Dictionary<string,string>();
+				Status.Add("RESO","RESOLVED");
+				Status.Add("NEED","NEEDINFO");
+				Status.Add("UNCO","UNCONFIRMED");
+				Status.Add("CLOS","CLOSED");
+				Status.Add("REOP","REOPENED");
+				keys.Add("Status",Status);
+
+				Dictionary <string,string> Resolution = new Dictionary<string,string>();
+				Resolution.Add("FIXE","FIXED");
+				Resolution.Add("INCO","INCOMPLETE");
+				Resolution.Add("NOTG","NOTGNOME");
+				Resolution.Add("NOTA","NOTABUG");
+				Resolution.Add("OBSO","OBSOLETE");
+				Resolution.Add("INVA","INVALID");
+				Resolution.Add("NOTX","NOTXIMIAN");
+				keys.Add("Resolution",Resolution);
+
+				Dictionary <string,string> Severity = new Dictionary<string,string>();
+				Severity.Add("cri","critical");
+				Severity.Add("maj","major");
+				Severity.Add("nor","normal");
+				Severity.Add("enh","enhancement");
+				Severity.Add("tri","trivial");
+				Severity.Add("blo","blocker");
+				keys.Add("Sev",Severity);
+
+				Dictionary <string,string> Priority = new Dictionary<string,string>();
+				Priority.Add("Hig","High");
+				Priority.Add("Nor","Normal");
+				Priority.Add("Urg","Urgent");
+				keys.Add("Pri",Priority);
+			}
 			foreach(string key in h.Keys)
 			{
 				switch(key)
 				{
-					case "Bug #":
-					case "ID":
-						break;
-					case "Status":
-					{
-						switch(h[key])
-						{
-							case "RESO":
-								b.values[key] = "RESOLVED";
-								break;
-							case "NEED":
-								b.values[key] = "NEEDINFO";
-								break;
-							case "UNCO":
-								b.values[key] = "UNCONFIRMED";
-								break;
-							case "NEW":
-								b.values[key] = h[key];
-								break;
-							case "CLOS":
-								b.values[key] = "CLOSED";
-								break;
-							case "REOP":
-								b.values[key] = "REOPENED";
-								break;
-							default:
-								b.values[key] = h[key];
-								break;
-								//throw new Exception(h[key]);
-						}
-						break;
-					}
 					case "Resolution":
 					{
 						if (h[key].Length>3 && h[key].Substring(0,4) == "DUPL")
@@ -377,106 +415,81 @@ namespace Pyro
 							}
 							break;	
 						}
-						switch(h[key])
-						{
-							case "FIXE":
-								b.values[key] = "FIXED";
-								break;
-							case "INCO":
-								b.values[key] = "INCOMPLETE";
-								break;
-							case "":
-								break;
-							case "NOTG":
-								b.values[key] = "NOTGNOME";
-								break;
-							case "NOTA":
-								b.values[key] = "NOTABUG";
-								break;
-							case "OBSO":
-								b.values[key] = "OBSOLETE";
-								break;
-							case "INVA":
-								b.values[key] = "INVALID";
-								break;
-							case "NOTX":
-								b.values[key] = "NOTXIMIAN";
-								break;
-							default:
-								b.values[key] = h[key];
-								break;
-								//throw new Exception(h[key]);
-						}
-						break;
+						goto default;
 					}
-					case "Sev":
-					{
-						switch(h[key])
-						{
-							case "cri":
-								b.values["Severity"] = "critical";
-								break;
-							case "maj":
-								b.values["Severity"] = "major";
-								break;
-							case "nor":
-								b.values["Severity"] = "normal";
-								break;
-							case "enh":
-								b.values["Severity"] = "enhancement";
-								break;
-							case "tri":
-								b.values["Severity"] = "trivial";
-								break;
-							case "blo":
-								b.values["Severity"] = "blocker";
-								break;
-							default:
-								b.values["Severity"] = h[key];
-								break;
-								//throw new Exception(h[key]);
-						}
-						break;
-					}
-					case "Pri":
-					{
-						switch(h[key])
-						{
-							case "Hig":
-								b.values["Priority"] = "High";
-								break;
-							case "Nor":
-								b.values["Priority"] = "Normal";
-								break;
-							case "Urg":
-								b.values["Priority"] = "Urgent";
-								break;
-							default:
-								b.values["Priority"] = h[key];
-								break;
-								//throw new Exception(h[key]);
-						}
-						break;
-					}
-					case "Summary":
-					case "Product":
-					case "OS":
-						break;
 					default:
-						throw new Exception(key);
+						if (keys.ContainsKey(key))
+						{
+							if (keys[key].ContainsKey(h[key]))
+							{
+								b.values[key] = keys[key][h[key]];
+								break;
+							}
+						}
+						b.values[key] = h[key];
+						break;
 				}
 			}
+								
 		}
+
+		static StringHash[] xmlParser(string input, string separator)
+		{
+			return xmlParser(input,separator,new StringHash());
+		}
+
+		static StringHash[] xmlParser(string input, string separator, StringHash mappings)
+		{
+			List<StringHash> rows = new List<StringHash>();
+			XmlTextReader reader = new XmlTextReader(new StringReader(input));
+			string top = reader.NameTable.Add(separator);
+			while (reader.Read()) 
+			{
+				if (reader.NodeType == XmlNodeType.Element) 
+				{
+					if (reader.Name.Equals(top)) 
+					{
+						StringHash ret = new StringHash();
+						reader.Read();
+						string element = null;
+						while (!reader.Name.Equals(top))
+						{
+							switch(reader.NodeType)
+							{
+								case XmlNodeType.Element:
+									element = reader.Name;
+									if (mappings.ContainsKey(element))
+									{
+										if (mappings[element] == null) /* therefore, skip */
+											reader.ReadOuterXml();	
+										else
+											element = mappings[element];
+									}
+									break;
+								case XmlNodeType.Text:
+									//Console.WriteLine("{0}: {1}",element,reader.Value);
+									ret.Add(element,reader.Value);
+									break;
+							}
+							reader.Read();
+						}
+						rows.Add(ret);
+					}      
+				}
+			}
+			return rows.ToArray();
+		}
+
 
 		static StringHash[] tableParser(string input)
 		{
-			ArrayList rows = new ArrayList();
+			List<StringHash> rows = new List<StringHash>();
 			Match tab = Regex.Match(input, "<table(.*?)</table>",RegexOptions.Singleline);
 			if (!tab.Success)
 				throw new Exception("table match failure");
 			string table = tab.ToString();
 			string [] headers = null;
-			ArrayList hdrs = new ArrayList();
+			List<string> hdrs = new List<string>();
 			foreach (Match m in Regex.Matches(table, "<tr[^>]*>(.*?)</tr>", RegexOptions.Singleline))
 			{
 				string row = m.ToString();
@@ -499,7 +512,7 @@ namespace Pyro
 				}
 				if (headers == null)
 				{
-					headers = (string[])hdrs.ToArray(typeof(string));
+					headers = hdrs.ToArray();
 					if (headers.Length == 0)
 						throw new Exception();
 					/*foreach(string s in headers)
@@ -519,7 +532,7 @@ namespace Pyro
 						throw new Exception();*/
 				}
 			}
-			return (StringHash[])rows.ToArray(typeof(StringHash));
+			return rows.ToArray();
 		}
 
 		public void setBadStacktrace(Response r)
@@ -650,7 +663,8 @@ Thanks in advance!";
 
 	public class Stacktrace
 	{
-		const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in <span class=\"trace-function\">([^<]+)</span>\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|<a name=\"stacktrace\"></a><span class=\"trace-handler\">&lt;(signal handler) called&gt;</span>)"; //(?:(?)|
+		//const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in <span class=\"trace-function\">([^<]+)</span>\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|<a name=\"stacktrace\"></a><span class=\"trace-handler\">&lt;(signal handler) called&gt;</span>)"; //(?:(?)|
+		const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in ([^\\s]+)\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|&lt;(signal handler) called&gt;)"; //(?:(?)|
 		
 		string raw = "";
 		public List<string[]> content = null;
@@ -680,7 +694,7 @@ Thanks in advance!";
 				{
 					string[] tostore = new string[2];
 					tostore[0] = m.Groups[2].Captures[0].Value;
-					if ((last!=null && tostore[0]==last) || tostore[0] == "__kernel_vsyscall" || tostore[0] =="raise" || tostore[0] == "abort" || tostore[0] == "g_free" || tostore[0] == "memcpy" || tostore[0] == "NSGetModule")
+					if ((last!=null && tostore[0]==last) || tostore[0] == "__kernel_vsyscall" || tostore[0] =="raise" || tostore[0] == "abort" || tostore[0] == "g_free" || tostore[0] == "memcpy" || tostore[0] == "NSGetModule" || tostore[0] == "??")
 						continue;
 
 					if (m.Groups[3].Captures.Count!=0)
@@ -700,7 +714,8 @@ Thanks in advance!";
 				}
 				else if (m.Groups[5].Captures.Count!=0)
 				{
-					//Console.WriteLine(" signal handler!");
+					Console.WriteLine(" signal handler!");
+					Console.WriteLine(m.Groups[5].Captures[0].Value);
 					seen_signal = true;
 				}
 			}
@@ -813,7 +828,7 @@ Thanks in advance!";
 		private HttpWebRequest genRequest(string path)
 		{
 			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+path);
-			myRequest.UserAgent = "Pyro bug triager/0.1";
+			myRequest.UserAgent = "Pyro bug triager/0.2";
 			if (wp!=null)
 				myRequest.Proxy = wp;
 			myRequest.CookieContainer = cookies;
@@ -901,70 +916,89 @@ Thanks in advance!";
 			return Regex.Replace(val, pattern, "").Trim();
 		}
 
+		private string path(string cache)
+		{
+			return Path.GetFullPath(Path.Combine(cachepath,cache));
+		}
+
+		private bool hasData(string cache)
+		{
+			return new FileInfo(path(cache)).Exists;
+		}
+
+		private string readData(string cache)
+		{
+			TextReader inFile = new StreamReader(path(cache));
+			string ret = inFile.ReadToEnd();
+			inFile.Close();
+			return ret;
+		}
+
 		private void getData(string url, string cache, Response r) {getData(url,cache,false,r);}
 		private void getData(string url, string cache, bool ignorecache, Response chain)
 		{
-			string path = Path.Combine(cachepath,cache);
-			FileInfo fi = new FileInfo(path);
-			Console.WriteLine("grabbing {1}{0} ({2})",url,root,path);
-			if (ignorecache || !fi.Exists)
+			Console.WriteLine("grabbing {1}{0}",url,root);
+			if (ignorecache || !hasData(cache))
 			{
 				getDataState state = new getDataState();
 				Console.WriteLine("\nNEW!");
 				state.req = genRequest(url);
-				state.path = path;
+				state.path = path(cache);
+				//writePath(state.path,""); /* test! */
 				state.req.BeginGetResponse(new AsyncCallback(getDataCallback),new Response(getDataShim,chain,state));
 			}
 			else
-			{
-				TextReader inFile = new StreamReader(path);
-				string ret = inFile.ReadToEnd();
-				inFile.Close();
-				chain.invoke(ret);
-			}
+				chain.invoke(readData(cache));
+		}
+
+		private void writePath(string path,string data)
+		{
+			TextWriter outFile = new StreamWriter(path);
+			Console.WriteLine("Writing {0}",path);
+			outFile.Write(data);
+			outFile.Close();
 		}
 
 		private void getDataCallback(IAsyncResult ar)
 		{
-			string ret = "";
-			Response r = (Response)ar.AsyncState;
-			getDataState st = (getDataState)r.input;
-			HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
-			StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
-			Console.WriteLine("\nResponse for {0}\n",st.path);
 			try
 			{
-				ret = sr.ReadToEnd();
-			}
-			catch
-			{
-				Console.WriteLine("Exception while reading bug");
-			}
-			sr.Close();
-			if (!Directory.Exists(cachepath))
-			{
-				Directory.CreateDirectory(cachepath);
-			}
-			Console.WriteLine("Got {0}",st.path);
-			TextWriter outFile = new StreamWriter(st.path);
-			outFile.Write(strip(ret));
-			outFile.Close();
-			Response.invoke(r,ret);
-		}
-
-		private void getDataShim(object res, object input, Response chain)
-		{
-			try
-			{
-				chain.invoke(res);
+				string ret = "";
+				Response r = (Response)ar.AsyncState;
+				getDataState st = (getDataState)r.input;
+				HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
+				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+				Console.WriteLine("\nResponse for {0}\n",st.path);
+				try
+				{
+					ret = sr.ReadToEnd();
+				}
+				catch
+				{
+					Console.WriteLine("Exception while reading bug");
+				}
+				sr.Close();
+				if (!Directory.Exists(cachepath))
+				{
+					Directory.CreateDirectory(cachepath);
+				}
+				Console.WriteLine("Got {0}",st.path);
+				writePath(st.path,strip(ret));
+				Response.invoke(r,ret);
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("getDataShim saw an exception");
+				/* necessary because of http://bugzilla.gnome.org/show_bug.cgi?id=395709 */
+				Console.WriteLine("async exception");
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
 				throw e;
 			}
+		}
+
+		private void getDataShim(object res, object input, Response chain)
+		{
+			chain.invoke(res);
 		}
 
 		public string bugPath(int id)
@@ -972,10 +1006,84 @@ Thanks in advance!";
 			return Path.GetFullPath(Path.Combine(cachepath,String.Concat(id)));
 		}
 
-		public void getBug(int id, Response r) { getBug(id,false, r);}
-		public void getBug(int id, bool ignorecache, Response r)
+		private struct BugList
 		{
-			getData("show_bug.cgi?id="+id, bugPath(id), ignorecache, r);
+			public Stack<int> todo;
+			public int[] complete;
+			public bool ignorecache;
+		}
+		
+		public void getBug(int[] id, Response r) { getBug(id,false, r);}
+
+		public void getBug(int[] id, bool ignorecache, Response r)
+		{
+			BugList bl = new BugList();
+			bl.complete = id;
+			bl.todo = new Stack<int>(id);
+			bl.ignorecache = ignorecache;
+			getBug(bl,r);
+		}
+
+		private void getBug(BugList bl, Response r)
+		{
+			StringBuilder grab = new StringBuilder("show_bug.cgi?ctype=xml");
+			StringBuilder path = new StringBuilder(Path.GetFullPath(Path.Combine(cachepath,"bugs")));
+			bool find = false;
+			while(bl.todo.Count>0)
+			{
+				int x = bl.todo.Pop();
+				if(!hasData(bugPath(x)))
+				{
+					grab.AppendFormat("&id={0}",x);
+					path.AppendFormat("-{0}",x);
+					find = true;
+					if (path.Length>150) /* sensible limit given varying path limits */
+						break;
+				}
+			}
+			if (find)
+				getData(grab.ToString(), path.ToString(), bl.ignorecache, new Response(splitBugs,r,bl));
+			else
+				splitBugs(null,bl,r);
+		}
+
+		private void splitBugs(object res, object input, Response r)
+		{
+			BugList bl = (BugList)input;
+			if (res!=null)
+			{
+				bool found = false;
+				XmlTextReader reader = new XmlTextReader(new StringReader((string)res));
+				string top = reader.NameTable.Add("bug");
+				while (reader.Read()) 
+				{
+					if (reader.NodeType == XmlNodeType.Element) 
+					{
+						if (reader.Name.Equals(top)) 
+						{
+							string data = reader.ReadOuterXml();
+							Match tab = Regex.Match(data, "<bug_id>(\\d+)</bug_id>");
+							if (!tab.Success)
+								throw new Exception("bug_id match failure");
+							int id = Int32.Parse(tab.Groups[1].Captures[0].Value);
+							Console.WriteLine("found {0}",id);
+							writePath(bugPath(id),data);
+							found = true;
+						}
+					}
+				}
+				if (!found)
+					throw new Exception();
+			}
+			if (bl.todo.Count>0)
+				getBug(bl,r);
+			else
+			{
+				StringBuilder ret = new StringBuilder();
+				foreach (int x in bl.complete)
+					ret.Append(readData(bugPath(x)));
+				Response.invoke(r,ret.ToString());	
+			}
 		}
 
 		public void simpleDupe(int id, Response r)
@@ -1003,7 +1111,7 @@ Thanks in advance!";
 			string corelist = (string)res;
 			Match m = Regex.Match(corelist,"(buglist.cgi\\?bug_id=[^\"]+)");
 			Console.WriteLine(r);
-			getData(m.ToString(),"corebugs-real",true,r);
+			getData(m.ToString()+"&ctype=rdf","corebugs-real",false,r);
 		}
 
 		public void stackDupe(Stacktrace st, Response r)
@@ -1015,7 +1123,7 @@ Thanks in advance!";
 				query.Append(" \""+s[0]+"\"");
 				name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
 			}
-			getData("buglist.cgi?query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
+			getData("buglist.cgi?ctype=rdf&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
 		}
 
 		public bool changeBug(StringHash values)
@@ -1114,6 +1222,7 @@ Thanks in advance!";
 		private void similarOldSt(object res, object input, Response r)
 		{
 			SimilarTodo st = (SimilarTodo) input;
+			List<int> ids = new List<int>();
 			st.oldst = (Stacktrace)res;
 			st.todo = new Stack<Bug>();
 			string hash = st.oldst.getHash();
@@ -1126,14 +1235,25 @@ Thanks in advance!";
 				if (b.id == 0)
 					continue;
 				if (b.stackhash == null)
+				{
 					st.todo.Push(b);
+					ids.Add(b.id);
+					if (st.todo.Count>=12)
+						break;
+				}
 				else if (b.stackhash == hash)
 				{
 					Response.invoke(r,b);
 					return;
 				}
 			}
-			nextSimilar(null,st,r);	
+			if (st.todo.Count>0)
+			{
+				Console.WriteLine(st.todo.Count);
+				bugz.getBug(ids.ToArray(),new VoidResponse(nextSimilar,r,st));
+			}
+			else
+				nextSimilar(null,st,r);	
 		}
 
 		public bool done(int id)
