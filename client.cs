@@ -618,7 +618,7 @@ Thanks in advance!";
 			Match form = Regex.Match((string)curr, "<form name=\"changeform\" method=\"post\" action=\"process_bug.cgi\">(.*?)</form>",RegexOptions.Singleline);
 			StringHash ret = new StringHash();
 			if (!form.Success)
-				throw new Exception();
+				throw new Exception("form match failure");
 			foreach (Match m2 in Regex.Matches(form.ToString(), "<input([^>]*)>|<textarea([^>]*)>", RegexOptions.Singleline))
 			{
 				StringHash sh = new StringHash();
