@@ -579,9 +579,10 @@ namespace PyroGui
 			notify.WakeupMain();
 		}
 
+		/*
 		protected void OnOpenUri (object o, OpenUriArgs args)
 		{
-			args.RetVal = true; /* don't load */
-		}
+			args.RetVal = true;
+		}*/
 	}
 }
