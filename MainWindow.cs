@@ -2,29 +2,31 @@ using Glade;
 using Gtk;
 using System;
 using System.IO;
-using Gecko;
 using Pyro;
 using System.Collections;
 using System.Threading;
 using System.Collections.Generic;
 using System.Net;
+using System.Xml.Xsl;
 
 namespace PyroGui
 {
 	class BugDisplay
 	{
-		public WebControl web;
-		//public HTML web;
+		//public WebControl web;
+		public HTML web;
 		public Bug bug;
 
 		public BugDisplay(Frame frm)
 		{
-			web = new WebControl();
-			//web = new HTML();
+			//web = new WebControl();
+			ScrolledWindow sw = new ScrolledWindow();
+			web = new HTML();
 			web.Show();
+			sw.Add(web);
 			//web.StatusChange += new EventHandler(changeHandler);
 			//web.NetStart += new EventHandler(NetStateAllHandler);
-			frm.Add(web);
+			frm.Add(sw);
 		}
 
 		public void changeHandler (object o, EventArgs args)
@@ -41,13 +43,22 @@ namespace PyroGui
 
 		public void showBug(bool stacktrace)
 		{
-			web.LoadUrl("file://"+bug.localpath()+(stacktrace?"#stacktrace":"#c0"));
+			XslTransform transform = new XslTransform();
+			transform.Load("bugs.xsl");
+			transform.Transform(bug.localpath(),bug.localpath()+"-trans");
+
+			TextReader inFile = new StreamReader(bug.localpath()+"-trans");
+			string ret = inFile.ReadToEnd();
+			inFile.Close();
+			ret = ret.Replace("&lt;signal handler called&gt;","<a name=\"stacktrace\"><font color=\"#00FF00\">&lt;signal handler called&gt;</font>");
+			web.LoadFromString(ret);
+			web.JumpToAnchor(stacktrace?"stacktrace":"c0");
 		}
 		
-		public void loadURL(string url)
+		/*public void loadURL(string url)
 		{
 			web.LoadUrl(url);
-		}
+		}*/
 		
 		/*public void render(bool stacktrace, string content)
 		{
@@ -70,7 +81,7 @@ namespace PyroGui
 		public void clear()
 		{
 			bug = null;
-			loadURL("about:blank");
+			web.LoadEmpty();
 		}
 	}
 	
