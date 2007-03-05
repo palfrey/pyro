@@ -24,6 +24,7 @@ namespace Pyro
 		public GenericResponse call;
 		public object next;
 		public object input;
+		public int depth = 1;
 
 		private Response(){}
 		public Response(GenericResponse gr): this(gr,null,null) {}
@@ -33,7 +34,9 @@ namespace Pyro
 			call = gr;
 			this.next = next;
 			input = d;
-			//Console.WriteLine("Creating {0} of {1}",call.Method, call.Target);
+			if (next!=null)
+				depth = ((Response)next).depth+1;
+			//Console.WriteLine("Creating {0} of {1} ({2})",call.Method, call.Target, depth);
 		}
 
 		public void print()
@@ -63,7 +66,9 @@ namespace Pyro
 			if (next!=null)
 				re = (Response)next;
 			//print();
-			Console.WriteLine("Invoking {0} of {1} ({2} {3})",call.Method, call.Target,input,re);
+			Console.WriteLine("Invoking {0} of {1} ({2} {3}) (depth={4})",call.Method, call.Target,input,re,depth);
+			/*if (depth == 4)
+				throw new Exception();*/
 			call(r,input,re);
 		}
 
