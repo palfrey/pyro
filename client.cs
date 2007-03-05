@@ -211,6 +211,7 @@ namespace Pyro
 			string pattern = @"<td>\s+<b>([^<:]+):</b>\s+</td>\s+<td>(.*?)</td>";*/
 			StringHash mappings = new StringHash();
 			mappings.Add("long_desc",null); /* ignore comments */
+			mappings.Add("attachment",null); /* ignore attachments */
 			mappings.Add("bug_status","Status");
 			mappings.Add("priority","Priority");
 			mappings.Add("bug_severity","Severity");
@@ -469,8 +470,8 @@ namespace Pyro
 									}
 									break;
 								case XmlNodeType.Text:
-									//Console.WriteLine("{0}: {1}",element,reader.Value);
-									ret.Add(element,reader.Value);
+									if (!ret.ContainsKey(element))
+										ret.Add(element,reader.Value);
 									break;
 							}
 							reader.Read();
