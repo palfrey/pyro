@@ -1097,12 +1097,12 @@ Thanks in advance!";
 
 		public void product(string name, Response r)
 		{
-			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+comment-count%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh",name,true,r);
+			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+responders%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh&ctype=rdf",name,false,r);
 		}
 
 		public void numbered(int id, int id2, Response r)
 		{
-			getData(String.Format("buglist.cgi?query=comment-count%3A0+severity%3Acritical+priority%3Ahigh+bug-number%3E%3D{0}+bug-number%3C%3D{1}+status%3Aunconfirmed",id,id2),"numbered",true,r);
+			getData(String.Format("buglist.cgi?query=responders%3A0+severity%3Acritical+priority%3Ahigh+bug-number%3E%3D{0}+bug-number%3C%3D{1}+status%3Aunconfirmed&ctype=rdf",id,id2),"numbered",true,r);
 		}
 
 		public void corebugs(Response r)
