@@ -447,7 +447,7 @@ namespace Pyro
 		static StringHash[] xmlParser(string input, string separator, StringHash mappings)
 		{
 			List<StringHash> rows = new List<StringHash>();
-			input = input.Replace("<¿,","");
+			//input = input.Replace("<¿,","");
 			//Console.WriteLine(input);
 			XmlTextReader reader = new XmlTextReader(new StringReader(input));
 			string top = reader.NameTable.Add(separator);
@@ -936,7 +936,7 @@ Thanks in advance!";
 
 		private string readData(string cache)
 		{
-			TextReader inFile = new StreamReader(path(cache));
+			StreamReader inFile = new StreamReader(path(cache));
 			string ret = inFile.ReadToEnd();
 			inFile.Close();
 			return ret;
@@ -961,7 +961,7 @@ Thanks in advance!";
 
 		private void writePath(string path,string data)
 		{
-			TextWriter outFile = new StreamWriter(path);
+			StreamWriter outFile = new StreamWriter(path,false,Encoding.UTF8);
 			Console.WriteLine("Writing {0}",path);
 			outFile.Write(data);
 			outFile.Close();
@@ -975,7 +975,7 @@ Thanks in advance!";
 				Response r = (Response)ar.AsyncState;
 				getDataState st = (getDataState)r.input;
 				HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
-				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+				StreamReader sr = new StreamReader(wre.GetResponseStream()); /*, Encoding.UTF8);*/
 				Console.WriteLine("\nResponse for {0}\n",st.path);
 				try
 				{
@@ -991,7 +991,7 @@ Thanks in advance!";
 					Directory.CreateDirectory(cachepath);
 				}
 				Console.WriteLine("Got {0}",st.path);
-				writePath(st.path,strip(ret));
+				writePath(st.path,ret);
 				Response.invoke(r,ret);
 			}
 			catch (Exception e)
