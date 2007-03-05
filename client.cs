@@ -441,6 +441,8 @@ namespace Pyro
 		static StringHash[] xmlParser(string input, string separator, StringHash mappings)
 		{
 			List<StringHash> rows = new List<StringHash>();
+			input = input.Replace("<¿,","");
+			//Console.WriteLine(input);
 			XmlTextReader reader = new XmlTextReader(new StringReader(input));
 			string top = reader.NameTable.Add(separator);
 			while (reader.Read()) 
