@@ -994,6 +994,7 @@ Thanks in advance!";
 				Console.WriteLine("async exception");
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
+				Environment.Exit(1);
 				throw e;
 			}
 		}
