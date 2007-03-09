@@ -212,8 +212,6 @@ namespace Pyro
 
 		public void getValuesResponse(object res, object input,Response r)
 		{
-			/*string check = (string)res;
-			string pattern = @"<td>\s+<b>([^<:]+):</b>\s+</td>\s+<td>(.*?)</td>";*/
 			StringHash mappings = new StringHash();
 			mappings.Add("long_desc",null); /* ignore comments */
 			mappings.Add("attachment",null); /* ignore attachments */
@@ -221,14 +219,6 @@ namespace Pyro
 			mappings.Add("priority","Priority");
 			mappings.Add("bug_severity","Severity");
 			this.values = xmlParser((string)res,"bug",mappings)[0];
-			/*foreach (Match m in Regex.Matches(check, pattern, RegexOptions.Singleline))
-			{
-				//Console.WriteLine(m.ToString());
-				//Console.WriteLine(m.Groups[1].Captures[0].Value);
-				string value = Bug.stripAll(m.Groups[2].Captures[0].Value);
-				//Console.WriteLine(value);
-				this.values.Add(m.Groups[1].Captures[0].Value.Trim(),value);
-			}*/
 			BugDB.DB.setValues(id,values);
 			Response.invoke(r,values);
 		}
@@ -244,13 +234,6 @@ namespace Pyro
 			}
 		}
 		
-		static string stripAll(string inVal)
-		{
-			string pattern = "<[^>]*>";
-			//string pattern = @"</?(?i:a|script|embed|object|frameset|frame|iframe|meta|link|style|span)(.|\n)*?>";
-			return Regex.Replace(inVal, pattern, "").Trim();
-		}
-
 		public void triageable(Response r)
 		{
 			if (BugDB.DB.done(id))
@@ -483,61 +466,6 @@ namespace Pyro
 						}
 						rows.Add(ret);
 					}      
-				}
-			}
-			return rows.ToArray();
-		}
-
-
-		static StringHash[] tableParser(string input)
-		{
-			List<StringHash> rows = new List<StringHash>();
-			Match tab = Regex.Match(input, "<table(.*?)</table>",RegexOptions.Singleline);
-			if (!tab.Success)
-				throw new Exception("table match failure");
-			string table = tab.ToString();
-			string [] headers = null;
-			List<string> hdrs = new List<string>();
-			foreach (Match m in Regex.Matches(table, "<tr[^>]*>(.*?)</tr>", RegexOptions.Singleline))
-			{
-				string row = m.ToString();
-				StringHash current = null;
-				int index = 0;
-				if (headers!=null)
-					current = new StringHash();
-				foreach (Match m2 in Regex.Matches(row, "<t(?:d|h)[^>]*>(.*?)</t(?:d|h)>", RegexOptions.Singleline))
-				{
-					string value = m2.Groups[1].Captures[0].Value;
-					if (headers == null)
-					{
-						hdrs.Add(Bug.stripAll(value));
-					}
-					else
-					{
-						current.Add(headers[index],Bug.stripAll(value));
-						index ++;
-					}
-				}
-				if (headers == null)
-				{
-					headers = hdrs.ToArray();
-					if (headers.Length == 0)
-						throw new Exception();
-					/*foreach(string s in headers)
-					{
-						Console.WriteLine("header: {0}",s);
-					}*/
-				}
-				else
-				{
-					rows.Add(current);
-					/*foreach(string key in current.Keys)
-					{
-						Console.WriteLine("row: {0} = {1}","ID",current["ID"]);
-						break;
-					}*/
-					/*if (rows.Count>30)
-						throw new Exception();*/
 				}
 			}
 			return rows.ToArray();
