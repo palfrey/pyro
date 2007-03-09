@@ -154,7 +154,7 @@ namespace Pyro
 			this.values = null;
 			BugDB.DB.setExisting(this.id);
 			BugDB.DB.setValues(this.id,null);
-			chain.invoke(data);
+			parseInput(new Response(parseInputTest,chain,data));
 		}
 
 		public void refresh(Response r)
@@ -449,7 +449,7 @@ namespace Pyro
 							{
 								case XmlNodeType.Element:
 									element = reader.Name;
-									if (mappings.ContainsKey(element))
+									if (element!=null && mappings.ContainsKey(element))
 									{
 										if (mappings[element] == null) /* therefore, skip */
 											reader.ReadOuterXml();	
@@ -946,7 +946,7 @@ Thanks in advance!";
 			while(bl.todo.Count>0)
 			{
 				int x = bl.todo.Pop();
-				if(!hasData(bugPath(x)))
+				if(!hasData(bugPath(x)) || bl.ignorecache)
 				{
 					grab.AppendFormat("&id={0}",x);
 					path.AppendFormat("-{0}",x);
@@ -1037,7 +1037,7 @@ Thanks in advance!";
 				query.Append(" \""+s[0]+"\"");
 				name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
 			}
-			getData("buglist.cgi?ctype=rdf&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
+			getData("buglist.cgi?ctype=rdf&order=bug_id&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
 		}
 
 		public bool changeBug(StringHash values)
@@ -1141,7 +1141,7 @@ Thanks in advance!";
 			st.todo = new Stack<Bug>();
 			string hash = st.oldst.getHash();
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select id from bugs where id<"+String.Concat(st.old.id);
+			dbcmd.CommandText = "select id from bugs where id<"+String.Concat(st.old.id)+" order by id";
 			IDataReader reader = dbcmd.ExecuteReader();
 			while (reader.Read())
 			{
