@@ -551,48 +551,25 @@ Thanks in advance!";
 
 		private void parseInputResponse(object curr, object input, Response chain)
 		{
-			Match form = Regex.Match((string)curr, "<form name=\"changeform\" method=\"post\" action=\"process_bug.cgi\">(.*?)</form>",RegexOptions.Singleline);
-			StringHash ret = new StringHash();
-			if (!form.Success)
-				throw new Exception("form match failure");
-			foreach (Match m2 in Regex.Matches(form.ToString(), "<input([^>]*)>|<textarea([^>]*)>", RegexOptions.Singleline))
+			StringHash mappings = new StringHash();
+			mappings.Add("long_desc",null); /* ignore comments */
+			mappings.Add("attachment",null); /* ignore attachments */
+			mappings.Add("bug_status",null);
+			mappings.Add("bug_id","id");
+			StringHash ret = Bug.xmlParser((string)curr,"bug",mappings)[0];
+			Response.invoke(chain,ret);
+		}
+
+		private void parseInputTest(object curr, object input, Response r)
+		{
+			StringHash orig = (StringHash)curr;
+
+			foreach(string s in orig.Keys)
 			{
-				StringHash sh = new StringHash();
-				foreach (Match p in Regex.Matches(m2.ToString(), "\\s+(.*?)=\"(.*?)\"", RegexOptions.Singleline))
-				{
-					sh.Add(p.Groups[1].Captures[0].Value,p.Groups[2].Captures[0].Value);
-				}
-				if (!sh.ContainsKey("type"))
-					sh.Add("type","input");
-				switch(sh["type"])
-				{
-					case "input":
-					case "hidden":
-						if (sh.ContainsKey("value"))
-							ret.Add(sh["name"],sh["value"]);
-						else	
-							ret.Add(sh["name"],"");
-						break;
-					case "submit":
-					case "checkbox": // none are currently checked, so ignore
-						break;
-					case "radio":
-						if (sh.ContainsKey("checked"))
-							ret.Add(sh["name"],sh["value"]);
-						break;
-					default:
-						throw new Exception(sh["type"]);
-				}
+				Console.WriteLine("{0} = {1}",s,orig[s]);
 			}
-			foreach (Match m2 in Regex.Matches(form.ToString(), "<select name=\"([^\"]*)\"(.*?)</select>", RegexOptions.Singleline))
-			{
-				Match option = Regex.Match(m2.Groups[2].Captures[0].Value, "<option value=\"([^\"]*)\" selected>",RegexOptions.Singleline);
-				if (option.Success)
-				{
-					ret.Add(m2.Groups[1].Captures[0].Value, option.Groups[1].Captures[0].Value);
-				}
-			}
-			chain.invoke(ret);
+			throw new Exception();
+			Response.invoke(r,input);
 		}
 	}
 
