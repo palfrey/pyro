@@ -66,7 +66,7 @@ namespace Pyro
 			if (next!=null)
 				re = (Response)next;
 			//print();
-			Console.WriteLine("Invoking {0} of {1} ({2} {3}) (depth={4})",call.Method, call.Target,input,re,depth);
+			Console.WriteLine("Invoking {0} of {1} (depth={2})",call.Method, call.Target,depth);
 			/*if (depth == 4)
 				throw new Exception();*/
 			call(r,input,re);
