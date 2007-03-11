@@ -733,9 +733,6 @@ Thanks in advance!";
 		{
 			this.root = root;
 			wp = null; //new WebProxy("taz",8118);
-			FileInfo f=new FileInfo("cookies.dat");
-			if (f.Exists)
-				_loggedIn = true;
 		}
 
 		private HttpWebRequest genRequest(string path)
