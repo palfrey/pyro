@@ -547,6 +547,7 @@ Can you get us a stack trace with debugging symbols? Please see
 http://live.gnome.org/GettingTraces for more information on how to do so.
 Thanks in advance!";
 			orig["knob"] = "needinfo";
+			orig["resolution"] = "FIXED";
 			bugz.changeBug(orig);
 			refresh(r);
 		}
@@ -580,6 +581,7 @@ Thanks in advance!";
 			else
     			orig["comment"] = "Thanks for the bug report. This particular bug has already been reported into our bug tracking system, but please feel free to report any further bugs you find";
 			orig["knob"] = "duplicate";
+			orig["resolution"] = "FIXED";
 			orig["dup_id"] = String.Concat(((Bug)input).id);
 			foreach(string s in orig.Keys)
 			{
