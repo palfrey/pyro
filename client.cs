@@ -603,6 +603,13 @@ Thanks in advance!";
 			mappings.Add("attachment",null); /* ignore attachments */
 			mappings.Add("bug_status",null);
 			mappings.Add("bug_id","id");
+			mappings.Add("classification_id",null);
+			mappings.Add("classification",null);
+			mappings.Add("reporter_accessible",null);
+			mappings.Add("initialowner_id",null);
+			mappings.Add("creation_ts",null);
+			mappings.Add("cclist_accessible",null);
+			mappings.Add("reporter",null);
 			StringHash ret = Bug.xmlParser((string)curr,"bug",mappings)[0];
 			Response.invoke(chain,ret);
 		}
