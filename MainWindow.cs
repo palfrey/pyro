@@ -368,7 +368,8 @@ namespace PyroGui
 							try
 							{
 								int id = Int32.Parse(product);
-								new Bug(0,bugz).numbered(id,id+3000,new Response(extraBugs));
+								//bugz.getBug(int[]{new Bug(id,bugz)},new Response(extraBugs));
+								new Bug(0,bugz).numbered(id,id+1,new Response(extraBugs));
 							}
 							catch (FormatException)
 							{
