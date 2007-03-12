@@ -485,7 +485,7 @@ namespace PyroGui
 				Response.invoke(r,null);
 			}
 			else
-				bug.similar(new Response(testSimilar,r,data));
+				bug.similar(new Response(grabSimilar,r,data));
 		}
 
 		private void testNeedinfo(object res, object data, Response r)
@@ -499,9 +499,26 @@ namespace PyroGui
 
 		private Queue<Bug> dupe = null;
 
+		private void grabSimilar(object res, object data, Response r)
+		{
+			dupe = new Queue<Bug>();
+			Bug[] bugs = (Bug[])res;
+			List<int> ids = new List<int>();
+			foreach(Bug b in bugs)
+			{
+				if (!BugDB.DB.done(b.id))
+				{
+					dupe.Enqueue(b);
+					ids.Add(b.id);
+				}
+				else
+					Console.WriteLine("{0} is marked as done",b.id);
+			}
+			bugz.getBug(ids.ToArray(),new VoidResponse(testSimilar,r));
+		}
+
 		private void testSimilar(object res, object data, Response r)
 		{
-			dupe = new Queue<Bug>((Bug[])res);
 			if (!checkDupe(r)) // nothing to check
 				bug.getValues("Status",new Response(testNeedinfoNoMatch,r,data));
 		}
