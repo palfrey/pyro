@@ -19,6 +19,53 @@ namespace Pyro
 		
 	public delegate void GenericResponse(object resp, object input, Response chain);
 
+	public class SafeStringReader: StringReader
+	{
+		public SafeStringReader(string s):base(s){}
+		public override int Read()
+		{
+			int ret = base.Read();
+			Console.WriteLine("read call: {0}",ret);
+			return ret;
+		}
+		public override string ReadLine()
+		{
+			string ret = base.ReadLine();
+			Console.WriteLine("readline call: {0}",ret);
+			return ret;
+		}
+		public override string ReadToEnd()
+		{
+			string ret = base.ReadToEnd();
+			Console.WriteLine("readtoend call: {0}",ret);
+			return ret;
+		}
+		public override int Read (char[] buffer, int index, int count)
+		{
+			int ret = base.Read(buffer,index,count);
+			Console.WriteLine("complex read call: {0} {1}",ret,buffer);
+			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_'};
+			for (int i=index;i<index+ret;i++)
+			{
+				if (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1)
+				{
+					buffer[i] = '?';
+					if (i!=index && buffer[i-1]=='<')
+						buffer[i-1] = '?';
+				}
+			}
+			/*if (ret!=0)
+				Console.WriteLine(buffer,index,ret);*/
+			return ret;
+		}
+		public override int ReadBlock (char[] buffer, int index, int count)
+		{
+			int ret = base.ReadBlock(buffer,index,count);
+			Console.WriteLine("readblock call: {0}",ret);
+			return ret;
+		}
+	}
+
 	public class Response
 	{
 		public GenericResponse call;
@@ -430,9 +477,7 @@ namespace Pyro
 		static StringHash[] xmlParser(string input, string separator, StringHash mappings)
 		{
 			List<StringHash> rows = new List<StringHash>();
-			//input = input.Replace("<¿,","");
-			//Console.WriteLine(input);
-			XmlTextReader reader = new XmlTextReader(new StringReader(input));
+			XmlTextReader reader = new XmlTextReader(new SafeStringReader(input));
 			string top = reader.NameTable.Add(separator);
 			while (reader.Read()) 
 			{
@@ -964,7 +1009,12 @@ Thanks in advance!";
 			if (res!=null)
 			{
 				bool found = false;
-				XmlTextReader reader = new XmlTextReader(new StringReader((string)res));
+				XmlReaderSettings settings = new XmlReaderSettings();
+				settings.CheckCharacters = false;
+				settings.ProhibitDtd = false;
+				settings.ValidationType = ValidationType.None;
+				//settings.ConformanceLevel = ConformanceLevel.
+				XmlReader reader = XmlReader.Create(new SafeStringReader((string)res),settings);
 				string top = reader.NameTable.Add("bug");
 				while (reader.Read()) 
 				{
