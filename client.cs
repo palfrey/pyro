@@ -618,6 +618,16 @@ Thanks in advance!";
 		{
 			StringHash orig = (StringHash)curr;
 
+			string[] must = new string[] {"blocked","dup_id","keywords","dependson","newcc","status_whiteboard","bug_file_loc","alias"};
+			foreach (string s in must)
+			{
+				if (!orig.ContainsKey(s))
+					orig.Add(s,"");
+			}
+			orig.Add("form_name","process_bug");
+			orig.Add("addselfcc","1");
+			orig.Add("longdesclength","1"); // FIXME: assumes one comment!
+			orig.Add("knob2","none");
 			foreach(string s in orig.Keys)
 			{
 				Console.WriteLine("{0} = {1}",s,orig[s]);
@@ -626,7 +636,6 @@ Thanks in advance!";
 			Response.invoke(r,input);
 		}
 	}
-
 
 	public class Stacktrace
 	{
