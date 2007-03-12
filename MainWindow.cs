@@ -391,7 +391,7 @@ namespace PyroGui
 					}
 				}
 				else
-					nextBug(null);
+					nextBug(null,null,null);
 			}
 			return true;
 		}
@@ -424,14 +424,14 @@ namespace PyroGui
 				else
 					Console.WriteLine("{0} is marked as done",b.id);
 			}
-			bugz.getBug(ids.ToArray(),null);
-			nextBug(r);
+			bugz.getBug(ids.ToArray(),new VoidResponse(nextBug,r));
+			//nextBug(r);
 		}
 
 		private Bug bug = null;
 		private Stacktrace st = null;
 
-		private void nextBug(Response r)
+		private void nextBug(object res, object input, Response r)
 		{
 			if (todo.Count==0)
 			{
