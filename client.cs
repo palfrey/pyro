@@ -44,7 +44,7 @@ namespace Pyro
 		{
 			int ret = base.Read(buffer,index,count);
 			Console.WriteLine("complex read call: {0} {1}",ret,buffer);
-			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_'};
+			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','@'};
 			for (int i=index;i<index+ret;i++)
 			{
 				if (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1)
