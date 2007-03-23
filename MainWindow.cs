@@ -420,16 +420,24 @@ namespace PyroGui
 			Response.invoke(r,null);	
 		}
 
+		List<Bug> extra = null;
+
 		private void extraBugs(object res, object data, Response r)
 		{
 			Bug []bugs = (Bug[])res;
 			List<int> ids = new List<int>();
+			extra = new List<Bug>();
 			foreach(Bug b in bugs)
 			{
 				if (!BugDB.DB.done(b.id))
 				{
-					todo.Enqueue(b);
-					ids.Add(b.id);
+					if (todo.Count<=20)
+					{
+						todo.Enqueue(b);
+						ids.Add(b.id);
+					}
+					else
+						extra.Add(b);
 				}
 				else
 					Console.WriteLine("{0} is marked as done",b.id);
@@ -445,6 +453,8 @@ namespace PyroGui
 		{
 			if (todo.Count==0)
 			{
+				if (extra.Count>0)
+					throw new Exception();
 				if (!didranout)
 				{
 					didranout = true;
