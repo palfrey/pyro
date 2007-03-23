@@ -611,7 +611,8 @@ Thanks in advance!";
 			mappings.Add("cclist_accessible",null);
 			mappings.Add("reporter",null);
 			StringHash ret = Bug.xmlParser((string)curr,"bug",mappings)[0];
-			Response.invoke(chain,ret);
+			parseInputTest(ret,null,chain);
+			//Response.invoke(chain,ret);
 		}
 
 		private void parseInputTest(object curr, object input, Response r)
