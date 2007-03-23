@@ -796,6 +796,16 @@ Thanks in advance!";
 		{
 			this.root = root;
 			wp = null; //new WebProxy("taz",8118);
+			FileInfo f=new FileInfo("cookies.dat");
+			if (f.Exists)
+			{
+				Stream s=f.Open(FileMode.Open);
+				BinaryFormatter b=new BinaryFormatter();
+				cookies = (CookieContainer)b.Deserialize(s);
+				s.Close();
+				if (cookies.GetCookieHeader(new System.Uri(root)).IndexOf("Bugzilla_login")!=-1)
+					_loggedIn = true;
+			}
 		}
 
 		private HttpWebRequest genRequest(string path)
@@ -869,7 +879,11 @@ Thanks in advance!";
 					return true;
 				}
 			}
-			return true;
+			else
+			{
+				_loggedIn = true;
+				return true;
+			}
 		}
 
 
