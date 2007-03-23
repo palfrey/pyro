@@ -286,6 +286,40 @@ namespace PyroGui
 
 		bool didcorebugs = false;
 		
+		void on_dialog_response (object obj, ResponseArgs args)
+		{
+			switch(args.ResponseId)
+			{
+				case ResponseType.Ok:
+					Console.WriteLine("ok");
+					try
+					{
+						if (!bugz.login(entUsername.Text,entPassword.Text))
+						{
+							postEvent(new Event(BugEvent.LoginFailure,"Login failure"));
+							return;
+						}
+					}
+					catch (WebException e)
+					{
+						postEvent(new Event(BugEvent.LoginFailure,((HttpWebResponse)e.Response).StatusDescription));
+						return;
+					}
+					break;
+				case ResponseType.None:	
+				case ResponseType.Cancel:
+				case ResponseType.DeleteEvent:
+					Console.WriteLine("cancel");
+					//postEvent(new Event(BugEvent.LoginFailure,"Didn't login"));
+					break;
+				default:
+					Console.WriteLine("id={0}",args.ResponseId);
+					throw new Exception();
+			}
+			hasprocess = true;
+			GLib.Idle.Add(new GLib.IdleHandler(processTask));
+		}
+
 		public bool processTask()
 		{
 			if (taskLock)
@@ -298,36 +332,12 @@ namespace PyroGui
 				Glade.XML gxml2 = new Glade.XML(null, "gui.glade", "dlgLogin", null);
 				gxml2.Autoconnect(this);
 				dlgLogin.Modal = true;
-				ResponseType resp = (ResponseType)dlgLogin.Run();
-				dlgLogin.Hide();
-				switch(resp)
-				{
-					case ResponseType.Ok:
-						Console.WriteLine("ok");
-						break;
-					case ResponseType.None:	
-					case ResponseType.Cancel:
-					case ResponseType.DeleteEvent:
-						Console.WriteLine("cancel");
-						postEvent(new Event(BugEvent.LoginFailure,"Didn't login"));
-						return false;
-					default:
-						Console.WriteLine("id={0}",resp);
-						throw new Exception();
-				}
-				try
-				{
-					if (!bugz.login(entUsername.Text,entPassword.Text))
-					{
-						postEvent(new Event(BugEvent.LoginFailure,"Login failure"));
-						return false;
-					}
-				}
-				catch (WebException e)
-				{
-					postEvent(new Event(BugEvent.LoginFailure,((HttpWebResponse)e.Response).StatusDescription));
-					return false;
-				}
+				entUsername.Text = "palfrey@tevp.net";
+				entPassword.Text = "epsilon";
+				dlgLogin.Response += new ResponseHandler (on_dialog_response);
+				dlgLogin.Run();
+				dlgLogin.Destroy();
+				return false;
 			}
 			if (deltas.Count>0)
 			{
