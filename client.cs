@@ -212,6 +212,11 @@ namespace Pyro
 			getRaw(true, r);
 		}
 
+		public void remove()
+		{
+			throw new Exception();
+		}
+
 		public string localpath()
 		{
 			return bugz.bugPath(this.id);
@@ -555,7 +560,7 @@ Thanks in advance!";
 			orig["knob"] = "needinfo";
 			orig["resolution"] = "FIXED";
 			bugz.changeBug(orig);
-			refresh(r);
+			remove();
 		}
 		
 		public void setDupe(Response r, Bug dupe)
@@ -594,7 +599,7 @@ Thanks in advance!";
 				Console.WriteLine("{0} = {1}",s,orig[s]);
 			}
 			bugz.changeBug(orig);
-			refresh(r);
+			remove();
 		}
 		
 		private void parseInput(Response r)
