@@ -1132,8 +1132,11 @@ Thanks in advance!";
 		public bool changeBug(StringHash values)
 		{
 			StringBuilder query = new StringBuilder();
+			string [] dont = {"thetext","Status","bug_when"};
 			foreach(string s in values.Keys)
 			{
+				if (Array.IndexOf(dont,s)!=-1)
+					continue;
 				Console.WriteLine("{0} = {1}",s,values[s].Replace("&#64;","%40"));
 				if (query.Length!=0)
 					query.Append("&");
@@ -1142,7 +1145,7 @@ Thanks in advance!";
 			ASCIIEncoding encoding=new ASCIIEncoding();
 			byte[]  data = encoding.GetBytes(query.ToString());
 
-			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+"process_bug.cgi");
+			HttpWebRequest myRequest = genRequest("process_bug.cgi");
 			myRequest.Method = "POST";
 			myRequest.ContentType="application/x-www-form-urlencoded";
 			myRequest.ContentLength = data.Length;
