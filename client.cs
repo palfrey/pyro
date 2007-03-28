@@ -22,6 +22,7 @@ namespace Pyro
 	public class SafeStringReader: StringReader
 	{
 		public SafeStringReader(string s):base(s){}
+		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','@','*','&',';','#','(',')'};
 		public override int Read()
 		{
 			int ret = base.Read();
@@ -43,15 +44,17 @@ namespace Pyro
 		public override int Read (char[] buffer, int index, int count)
 		{
 			int ret = base.Read(buffer,index,count);
-			Console.WriteLine("complex read call: {0} {1}",ret,buffer);
-			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','@'};
+			//Console.WriteLine("complex read call: {0} {1}",ret,buffer);
 			for (int i=index;i<index+ret;i++)
 			{
-				if (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1)
+				if ((int)buffer[i]>1000 || (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1))
 				{
 					buffer[i] = '?';
-					if (i!=index && buffer[i-1]=='<')
+					if (i!=0 && (buffer[i-1]=='<' || buffer[i-1] == '>') && buffer[i+1]!='x')
+					{
+						Console.WriteLine("earlier mark at {0}",i-1);
 						buffer[i-1] = '?';
+					}
 				}
 			}
 			/*if (ret!=0)
