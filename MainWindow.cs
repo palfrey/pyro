@@ -208,6 +208,7 @@ namespace PyroGui
 				{
 					case BugEvent.LoginFailure:
 						doing = true;
+						taskLock = true;
 						break;
 					case BugEvent.LoginSuccess:
 						break;
