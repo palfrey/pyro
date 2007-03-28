@@ -204,7 +204,7 @@ namespace Pyro
 			this.values = null;
 			BugDB.DB.setExisting(this.id);
 			BugDB.DB.setValues(this.id,null);
-			parseInput(new Response(parseInputTest,chain,data));
+			Response.invoke(chain,data);
 		}
 
 		public void refresh(Response r)
@@ -226,23 +226,25 @@ namespace Pyro
 		void getComments(Response r)
 		{
 			if (this.comments == null)
-				getRaw(new Response(getCommentsCallback,r));
+				parseInput(new Response(getCommentsCallback,r));
 			else
 				Response.invoke(r,this.comments);
 		}
 
 		private void getCommentsCallback(object o, object input, Response r)
 		{
-			string s = (string)o;
-			string pattern = "<thetext>(.*?)</thetext>";
+			StringHash s = (StringHash)o;
+			//string s = (string)o;
+			//string pattern = "<thetext>(.*?)</thetext>";
 			List<string> ret = new List<string>();
 			//Console.WriteLine(s);
-			foreach (Match m in Regex.Matches(s, pattern, RegexOptions.Singleline))
+			/*foreach (Match m in Regex.Matches(s, pattern, RegexOptions.Singleline))
 			{
 				//Console.WriteLine(m.Groups[0].Captures.Count);
 				//Console.WriteLine(m.Groups[0].Captures[0].Value);
 				ret.Add(m.Groups[0].Captures[0].Value);
-			}
+			}*/
+			ret.Add(s["thetext"]);
 			if (ret.Count==0)
 				throw new Exception();
 			Console.WriteLine("Comments: {0}",ret.Count);
@@ -254,7 +256,8 @@ namespace Pyro
 		{
 			if (this.values==null || (idx!=null && this._raw == null && !this.values.ContainsKey(idx)))
 			{
-				getRaw(new Response(getValuesResponse,r));
+				parseInput(r);
+				//getRaw(new Response(getValuesResponse,r));
 			}
 			else
 				Response.invoke(r,values);
@@ -262,13 +265,13 @@ namespace Pyro
 
 		public void getValuesResponse(object res, object input,Response r)
 		{
-			StringHash mappings = new StringHash();
-			mappings.Add("long_desc",null); /* ignore comments */
-			mappings.Add("attachment",null); /* ignore attachments */
-			mappings.Add("bug_status","Status");
+			//StringHash mappings = new StringHash();
+			//mappings.Add("long_desc",null); /* ignore comments */
+			//mappings.Add("attachment",null); /* ignore attachments */
+			/*mappings.Add("bug_status","Status");
 			mappings.Add("priority","Priority");
-			mappings.Add("bug_severity","Severity");
-			this.values = xmlParser((string)res,"bug",mappings)[0];
+			mappings.Add("bug_severity","Severity");*/
+			this.values = (StringHash)res; /*xmlParser((string)res,"bug",mappings)[0];*/
 			BugDB.DB.setValues(id,values);
 			Response.invoke(r,values);
 		}
@@ -295,7 +298,7 @@ namespace Pyro
 		private void triageableResponse(object res, object input, Response r)
 		{
 			StringHash values = (StringHash)res;
-			if ((values["Status"]!="UNCONFIRMED" && values["Status"]!="NEEDINFO") || values["Severity"]!="critical" || values["Priority"]!="High")
+			if ((values["Status"]!="UNCONFIRMED" && values["Status"]!="NEEDINFO") || values["bug_severity"]!="critical" || values["priority"]!="High")
 			{
 				Response.invoke(r,false);
 				return;
@@ -596,15 +599,20 @@ Thanks in advance!";
 		
 		private void parseInput(Response r)
 		{
-			getRaw(new Response(parseInputResponse,r));
+			parseInput(r,null);
+		}
+
+		private void parseInput(Response r, object input)
+		{
+			getRaw(new Response(parseInputResponse,r,input));
 		}
 
 		private void parseInputResponse(object curr, object input, Response chain)
 		{
 			StringHash mappings = new StringHash();
-			mappings.Add("long_desc",null); /* ignore comments */
+			//mappings.Add("long_desc",null); /* ignore comments */
 			mappings.Add("attachment",null); /* ignore attachments */
-			mappings.Add("bug_status",null);
+			mappings.Add("bug_status","Status");
 			mappings.Add("bug_id","id");
 			mappings.Add("classification_id",null);
 			mappings.Add("classification",null);
@@ -613,14 +621,7 @@ Thanks in advance!";
 			mappings.Add("creation_ts",null);
 			mappings.Add("cclist_accessible",null);
 			mappings.Add("reporter",null);
-			StringHash ret = Bug.xmlParser((string)curr,"bug",mappings)[0];
-			parseInputTest(ret,null,chain);
-			//Response.invoke(chain,ret);
-		}
-
-		private void parseInputTest(object curr, object input, Response r)
-		{
-			StringHash orig = (StringHash)curr;
+			StringHash orig = Bug.xmlParser((string)curr,"bug",mappings)[0];
 
 			string[] must = new string[] {"blocked","dup_id","keywords","dependson","newcc","status_whiteboard","bug_file_loc","alias"};
 			foreach (string s in must)
@@ -636,8 +637,8 @@ Thanks in advance!";
 			{
 				Console.WriteLine("{0} = {1}",s,orig[s]);
 			}
-			throw new Exception();
-			Response.invoke(r,input);
+			//throw new Exception();
+			Response.invoke(chain,orig);
 		}
 	}
 
@@ -1272,12 +1273,12 @@ Thanks in advance!";
 			else
 			{
 				dbcmd.CommandText = "update bugs set Status=\""+values["Status"]+"\"";
-				if (values.ContainsKey("Priority"))
-					dbcmd.CommandText += ",Priority=\""+values["Priority"]+"\"";
+				if (values.ContainsKey("priority"))
+					dbcmd.CommandText += ",Priority=\""+values["priority"]+"\"";
 				else
 					dbcmd.CommandText += ",Priority=\"\"";
-				if (values.ContainsKey("Severity"))
-					dbcmd.CommandText += ",Severity=\""+values["Severity"]+"\"";
+				if (values.ContainsKey("bug_severity"))
+					dbcmd.CommandText += ",Severity=\""+values["bug_severity"]+"\"";
 				else	
 					dbcmd.CommandText += ",Severity=\"\"";
 			}
@@ -1339,9 +1340,9 @@ Thanks in advance!";
 			{
 				Bug ret = new Bug(id,bugz);
 				if (!reader.IsDBNull(0))
-					ret.setValue("Severity",reader.GetString(0));
+					ret.setValue("bug_severity",reader.GetString(0));
 				if (!reader.IsDBNull(1))
-					ret.setValue("Priority",reader.GetString(1));
+					ret.setValue("priority",reader.GetString(1));
 				if (!reader.IsDBNull(2))
 					ret.setValue("Status",reader.GetString(2));
 				if (!reader.IsDBNull(3))
