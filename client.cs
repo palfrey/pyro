@@ -153,7 +153,6 @@ namespace Pyro
 		{
 			this._raw = (string)data;
 			this.values = null;
-			BugDB.DB.setExisting(this.id);
 			BugDB.DB.setValues(this.id,null);
 			Response.invoke(chain,data);
 		}
@@ -1025,6 +1024,7 @@ Thanks in advance!";
 							int id = Int32.Parse(tab.Groups[1].Captures[0].Value);
 							Console.WriteLine("found {0}",id);
 							writePath(bugPath(id),data);
+							BugDB.DB.setExisting(id);
 							found = true;
 						}
 					}
