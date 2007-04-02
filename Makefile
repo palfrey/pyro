@@ -1,4 +1,4 @@
-all:Pyro.exe rebuild.exe
+all:Pyro.exe
 
 Pyro.exe: PyroCore.dll MainWindow.cs gui.glade
 	gmcs -pkg:gtk-sharp-2.0 -pkg:glade-sharp-2.0 MainWindow.cs -r:PyroCore.dll -out:$@ -resource:gui.glade -debug -pkg:gnome-sharp-2.0 -pkg:gtkhtml-sharp-2.0
