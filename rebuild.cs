@@ -6,14 +6,36 @@ using System.Collections.Generic;
 class Rebuild
 {
 	static Queue <Bug> todo = new Queue<Bug>();
+	static string cachepath = "cache";
 	
+	private static string path(string cache)
+	{
+		return Path.GetFullPath(Path.Combine(cachepath,cache));
+	}
+
+	private static string readData(string cache)
+	{
+		StreamReader inFile = new StreamReader(path(cache));
+		string ret = inFile.ReadToEnd();
+		inFile.Close();
+		return ret;
+	}
+
 	public static void Main(string[] args)
 	{
-		string cachepath = "cache";
 		Bugzilla bugz = new Bugzilla("http://bugzilla.gnome.org/");
 		BugDB.bugz = bugz;
 
 		DirectoryInfo di = new DirectoryInfo(cachepath);
+
+		foreach (int i in BugDB.DB.allBugs())
+		{
+			if (!File.Exists("cache/"+String.Concat(i)))
+			{
+				BugDB.DB.remove(i);
+				Console.WriteLine("removing {0}",i);
+			}
+		}
 
 		foreach(FileInfo f in di.GetFiles())
 		{
@@ -25,6 +47,13 @@ class Rebuild
 					continue;
 				Bug b = new Bug(id,bugz);
 				todo.Enqueue(b);
+				StringHash[] orig = Bug.xmlParser(readData(String.Concat(id)),"bug");
+				if (orig.Length == 0)
+				{
+					Console.WriteLine("{0} is malformatted, removing",id);
+					File.Delete(path(String.Concat(id)));
+					BugDB.DB.remove(id);
+				}
 			}
 			catch (FormatException) {} // ignore. non-id files
 		}

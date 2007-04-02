@@ -483,12 +483,12 @@ namespace Pyro
 								
 		}
 
-		static StringHash[] xmlParser(string input, string separator)
+		public static StringHash[] xmlParser(string input, string separator)
 		{
 			return xmlParser(input,separator,new StringHash());
 		}
 
-		static StringHash[] xmlParser(string input, string separator, StringHash mappings)
+		public static StringHash[] xmlParser(string input, string separator, StringHash mappings)
 		{
 			List<StringHash> rows = new List<StringHash>();
 			//XmlTextReader reader = new XmlTextReader(new SafeStringReader(input));
@@ -1371,6 +1371,14 @@ Thanks in advance!";
 				return null;
 		}
 
+		public void remove(int id)
+		{
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "delete from bugs where id=@id";
+			dbcmd.Parameters.Add(new SqliteParameter("@id",id));	
+			dbcmd.ExecuteNonQuery();
+		}
+
 		public void setExisting(int id)
 		{
 			IDbCommand dbcmd = dbcon.CreateCommand();
@@ -1384,6 +1392,19 @@ Thanks in advance!";
 				dbcmd2.Parameters.Add(new SqliteParameter("@id",id));	
 				dbcmd2.ExecuteNonQuery();
 			}
+		}
+
+		public int[] allBugs()
+		{
+			List <int> ret = new List<int>();
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "select id from bugs";
+			IDataReader reader = dbcmd.ExecuteReader();
+			while (reader.Read())
+			{
+				ret.Add(reader.GetInt32(0));
+			}
+			return ret.ToArray();
 		}
 	}
 }
