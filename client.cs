@@ -658,6 +658,8 @@ Thanks in advance!";
 		string raw = "";
 		public List<string[]> content = null;
 		public int id;
+
+		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone"};
 		
 		public Stacktrace(int id, string data)
 		{
@@ -683,7 +685,7 @@ Thanks in advance!";
 				{
 					string[] tostore = new string[2];
 					tostore[0] = m.Groups[2].Captures[0].Value;
-					if ((last!=null && tostore[0]==last) || tostore[0] == "__kernel_vsyscall" || tostore[0] =="raise" || tostore[0] == "abort" || tostore[0] == "g_free" || tostore[0] == "memcpy" || tostore[0] == "NSGetModule" || tostore[0] == "??")
+					if ((last!=null && tostore[0]==last) || Array.IndexOf(worthless,tostore[0])!=-1)
 						continue;
 
 					if (m.Groups[3].Captures.Count!=0)
