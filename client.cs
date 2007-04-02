@@ -589,7 +589,7 @@ Thanks in advance!";
 		private void setDupeResponse(object curr, object input, Response r)
 		{
 			StringHash orig = (StringHash)curr;
-			if (values["Status"] == "NEEDINFO")
+			if (orig["Status"] == "NEEDINFO" || (orig["Status"] == "RESOLVED" && orig["RESOLUTION"] == "INCOMPLETE"))
 				orig["comment"] = "Thanks for taking the time to report this bug.\nThis particular bug has already been reported into our bug tracking system, but the maintainers need more information to fix the bug. Could you please answer the questions in the other report in order to help the developers?";
 			else
     			orig["comment"] = "Thanks for the bug report. This particular bug has already been reported into our bug tracking system, but please feel free to report any further bugs you find";
