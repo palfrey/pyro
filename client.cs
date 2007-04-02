@@ -637,7 +637,7 @@ Thanks in advance!";
 					orig.Add(s,"");
 			}
 			orig.Add("form_name","process_bug");
-			orig.Add("addselfcc","1");
+			orig.Add("addselfcc","on");
 			orig.Add("longdesclength","1"); // FIXME: assumes one comment!
 			orig.Add("knob2","none");
 			foreach(string s in orig.Keys)
