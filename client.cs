@@ -10,6 +10,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Data;
 using Mono.Data.SqliteClient;
+using NonValidating;
 
 namespace Pyro
 {
@@ -490,40 +491,38 @@ namespace Pyro
 		static StringHash[] xmlParser(string input, string separator, StringHash mappings)
 		{
 			List<StringHash> rows = new List<StringHash>();
-			XmlTextReader reader = new XmlTextReader(new SafeStringReader(input));
+			//XmlTextReader reader = new XmlTextReader(new SafeStringReader(input));
+			NonValidatingReader reader = new NonValidatingReader(input);
 			string top = reader.NameTable.Add(separator);
 			while (reader.Read()) 
 			{
-				if (reader.NodeType == XmlNodeType.Element) 
+				if (reader.NodeType == XmlNodeType.Element && reader.Name.CompareTo(top)==0) 
 				{
-					if (reader.Name.Equals(top)) 
+					StringHash ret = new StringHash();
+					reader.Read();
+					string element = null;
+					while (reader.Name.CompareTo(top)!=0)
 					{
-						StringHash ret = new StringHash();
-						reader.Read();
-						string element = null;
-						while (!reader.Name.Equals(top))
+						switch(reader.NodeType)
 						{
-							switch(reader.NodeType)
-							{
-								case XmlNodeType.Element:
-									element = reader.Name;
-									if (element!=null && mappings.ContainsKey(element))
-									{
-										if (mappings[element] == null) /* therefore, skip */
-											reader.ReadOuterXml();	
-										else
-											element = mappings[element];
-									}
-									break;
-								case XmlNodeType.Text:
-									if (!ret.ContainsKey(element))
-										ret.Add(element,reader.Value);
-									break;
-							}
-							reader.Read();
+							case XmlNodeType.Element:
+								element = reader.Name;
+								if (element!=null && mappings.ContainsKey(element))
+								{
+									if (mappings[element] == null) /* therefore, skip */
+										reader.ReadOuterXml();	
+									else
+										element = mappings[element];
+								}
+								break;
+							case XmlNodeType.Text:
+								if (!ret.ContainsKey(element))
+									ret.Add(element,reader.Value);
+								break;
 						}
-						rows.Add(ret);
-					}      
+						reader.Read();
+					}
+					rows.Add(ret);
 				}
 			}
 			return rows.ToArray();
@@ -653,7 +652,7 @@ Thanks in advance!";
 	public class Stacktrace
 	{
 		//const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in <span class=\"trace-function\">([^<]+)</span>\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|<a name=\"stacktrace\"></a><span class=\"trace-handler\">&lt;(signal handler) called&gt;</span>)"; //(?:(?)|
-		const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in ([^\\s]+)\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|<(signal handler) called>)"; //(?:(?)|
+		const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in ([^\\s]+)\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|&lt;(signal handler) called&gt;)"; //(?:(?)|
 		
 		string raw = "";
 		public List<string[]> content = null;
