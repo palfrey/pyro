@@ -4,17 +4,17 @@ using System.Collections.Generic;
 
 namespace NonValidating
 {
-	public class NonValidatingReader
+	public class NonValidatingReader: XmlReader
 	{
 		private string content;
-		private int index = 0;
+		private int index = 0,begin=0;
 
-		public XmlNodeType NodeType = XmlNodeType.None;
-		public string Name = null;
-		public string Value = null;
+		public new XmlNodeType NodeType = XmlNodeType.None;
+		public new string Name = null;
+		public new string Value = null;
 		public string Attributes = null;
 
-		public class Names: List<string>
+		/*public class Names: List<string>
 		{
 			public new string Add(string input)
 			{
@@ -23,28 +23,31 @@ namespace NonValidating
 			}
 		}
 
-		public Names NameTable;
+		public Names NameTable;*/
 
-		public NonValidatingReader(string content)
+		public NonValidatingReader(string content):base()
 		{
 			this.content = content;
-			NameTable = new Names();
+			//NameTable = new Names();
 		}
 
-		public void ReadOuterXml()
+		public override string ReadOuterXml()
 		{
 			if (NodeType != XmlNodeType.Element)
 				throw new Exception("Nodetype during readouterxml should be element");
 			string find = Name;
-			//Console.WriteLine("skipping until we see a {0}",find);
+			int start = begin;
+			Console.WriteLine("skipping until we see a {0}",find);
 			while(Read())
 			{
-				if (Name.CompareTo(find)==0)
+				if (NodeType == XmlNodeType.EndElement && Name.CompareTo(find)==0)
 					break;
 			}
+			return content.Substring(start,index-start);
+
 		}
 
-		public bool Read()
+		public override bool Read()
 		{
 			int angle;
 			if (index == content.Length)
@@ -73,6 +76,7 @@ namespace NonValidating
 						Attributes = Name.Substring(Name.IndexOf(" ")+1);
 						Name = Name.Substring(0,Name.IndexOf(" "));
 					}
+					begin = index;
 					index = endangle+1;
 					//Console.WriteLine("name: {0}",Name);
 					return true;
@@ -85,6 +89,7 @@ namespace NonValidating
 					string text = content.Substring(index,angle-index).Trim();
 					if (text.Length>0)
 					{
+						begin = index;
 						index += text.Length;
 						Value = text;
 						NodeType = XmlNodeType.Text;
@@ -100,7 +105,6 @@ namespace NonValidating
 				default:
 					throw new Exception("bad type");
 			}
-			return false;
 		}
 	}
 }
