@@ -22,7 +22,7 @@ namespace Pyro
 	public class SafeStringReader: StringReader
 	{
 		public SafeStringReader(string s):base(s){}
-		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','@','*','&',';','#','(',')','[',']'};
+		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','@','*','&',';','#','(',')','[',']','$','\''};
 		public override int Read()
 		{
 			int ret = base.Read();
