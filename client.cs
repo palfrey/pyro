@@ -1176,6 +1176,8 @@ Thanks in advance!";
 		{
 			SimilarTodo st = new SimilarTodo();
 			st.old = getExisting(id);
+			if (st.old == null)
+				throw new Exception("should have an old stacktrace");
 			st.old.getStacktrace(new Response(similarOldSt,r,st));
 		}
 
@@ -1203,6 +1205,8 @@ Thanks in advance!";
 				}
 				else if (b.stackhash == hash)
 				{
+					if (!File.Exists(b.localpath()))
+						throw new Exception("Can't find bug "+String.Concat(b.id));
 					Response.invoke(r,b);
 					return;
 				}
