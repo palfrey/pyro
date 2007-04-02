@@ -658,7 +658,7 @@ Thanks in advance!";
 		public List<string[]> content = null;
 		public int id;
 
-		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone"};
+		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_str_hash","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gdk_window_process_all_updates","gtk_widget_show","g_cclosure_marshal_VOID__BOOLEAN"};
 		
 		public Stacktrace(int id, string data)
 		{
@@ -684,15 +684,20 @@ Thanks in advance!";
 				{
 					string[] tostore = new string[2];
 					tostore[0] = m.Groups[2].Captures[0].Value;
-					if ((last!=null && tostore[0]==last) || Array.IndexOf(worthless,tostore[0])!=-1)
-						continue;
-
 					if (m.Groups[3].Captures.Count!=0)
 						tostore[1] = m.Groups[3].Captures[0].Value;
 					else if (m.Groups[4].Captures.Count!=0)
 						tostore[1] = m.Groups[4].Captures[0].Value;
 					else
 						tostore[1] = "";
+					if (tostore[1].IndexOf("/")!=-1)
+					{
+						tostore[1] = tostore[1].Substring(tostore[1].LastIndexOf("/")+1);
+					}
+
+					if ((last!=null && tostore[0]==last) || Array.IndexOf(worthless,tostore[0])!=-1 || tostore[1].IndexOf("libgobject")!=-1 || tostore[1].IndexOf("libglib")!=-1)
+						continue;
+
 					if (seen_signal)
 					{
 						this.content.Add(tostore);
@@ -773,7 +778,7 @@ Thanks in advance!";
 		{
 			if (this.content.Count == 0)
 				return false;
-			if (this.content[0][0] == "poll" && this.content[1][0] == "g_main_context_check") // evolution bugs that we're hacking around
+			if (this.content[0][0] == "poll" && this.content.Count>1 && this.content[1][0] == "g_main_context_check") // evolution bugs that we're hacking around
 				return false;
 			return true;
 		}
