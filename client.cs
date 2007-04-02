@@ -20,56 +20,6 @@ namespace Pyro
 		
 	public delegate void GenericResponse(object resp, object input, Response chain);
 
-	public class SafeStringReader: StringReader
-	{
-		public SafeStringReader(string s):base(s){}
-		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','@','*','&',';','#','(',')','[',']','$','\''};
-		public override int Read()
-		{
-			int ret = base.Read();
-			Console.WriteLine("read call: {0}",ret);
-			return ret;
-		}
-		public override string ReadLine()
-		{
-			string ret = base.ReadLine();
-			Console.WriteLine("readline call: {0}",ret);
-			return ret;
-		}
-		public override string ReadToEnd()
-		{
-			string ret = base.ReadToEnd();
-			Console.WriteLine("readtoend call: {0}",ret);
-			return ret;
-		}
-		public override int Read (char[] buffer, int index, int count)
-		{
-			int ret = base.Read(buffer,index,count);
-			//Console.WriteLine("complex read call: {0} {1}",ret,buffer);
-			for (int i=index;i<index+ret;i++)
-			{
-				if ((int)buffer[i]>1000 || (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1))
-				{
-					buffer[i] = '?';
-					if (i!=0 && (buffer[i-1]=='<' || buffer[i-1] == '>') && buffer[i+1]!='x')
-					{
-						Console.WriteLine("earlier mark at {0}",i-1);
-						buffer[i-1] = '?';
-					}
-				}
-			}
-			/*if (ret!=0)
-				Console.WriteLine(buffer,index,ret);*/
-			return ret;
-		}
-		public override int ReadBlock (char[] buffer, int index, int count)
-		{
-			int ret = base.ReadBlock(buffer,index,count);
-			Console.WriteLine("readblock call: {0}",ret);
-			return ret;
-		}
-	}
-
 	public class Response
 	{
 		public GenericResponse call;
@@ -1060,12 +1010,7 @@ Thanks in advance!";
 			if (res!=null)
 			{
 				bool found = false;
-				XmlReaderSettings settings = new XmlReaderSettings();
-				settings.CheckCharacters = false;
-				settings.ProhibitDtd = false;
-				settings.ValidationType = ValidationType.None;
-				//settings.ConformanceLevel = ConformanceLevel.
-				XmlReader reader = XmlReader.Create(new SafeStringReader((string)res),settings);
+				NonValidatingReader reader = new NonValidatingReader((string)res);
 				string top = reader.NameTable.Add("bug");
 				while (reader.Read()) 
 				{
