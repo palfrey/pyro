@@ -349,9 +349,11 @@ namespace PyroGui
 				{
 					case BugChange.MarkBad:
 						d.b.setBadStacktrace(new Response(endTask));
+						BugDB.DB.setDone(d.b.id);
 						break;
 					case BugChange.MarkDupe:
 						d.b.setDupe(new Response(endTask),d.dup);
+						BugDB.DB.setDone(d.b.id);
 						break;
 					case BugChange.MarkDone:
 						BugDB.DB.setDone(d.b.id);
