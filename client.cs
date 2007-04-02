@@ -164,8 +164,9 @@ namespace Pyro
 
 		public void remove(Response r)
 		{
-			File.Delete(localpath());
+			//File.Delete(localpath());
 			//throw new Exception();
+			BugDB.DB.remove(this.id);
 			Response.invoke(r,null);
 		}
 
