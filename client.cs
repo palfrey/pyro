@@ -640,6 +640,7 @@ Thanks in advance!";
 			orig.Add("addselfcc","on");
 			orig.Add("longdesclength","1"); // FIXME: assumes one comment!
 			orig.Add("knob2","none");
+			orig["delta_ts"] = DateTime.ParseExact(orig["delta_ts"], "yyyy-MM-dd HH:mm:ss UTC", null).ToString("yyyy-MM-dd HH:mm:ss");
 			foreach(string s in orig.Keys)
 			{
 				Console.WriteLine("{0} = {1}",s,orig[s]);
