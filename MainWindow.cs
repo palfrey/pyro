@@ -8,6 +8,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Net;
 using System.Xml.Xsl;
+using NonValidating;
 
 namespace PyroGui
 {
@@ -16,6 +17,7 @@ namespace PyroGui
 		//public WebControl web;
 		public HTML web;
 		public Bug bug;
+		private string xsl;
 
 		public BugDisplay(Frame frm)
 		{
@@ -27,6 +29,9 @@ namespace PyroGui
 			//web.StatusChange += new EventHandler(changeHandler);
 			//web.NetStart += new EventHandler(NetStateAllHandler);
 			frm.Add(sw);
+			StreamReader inFile = new StreamReader("bugs.xsl");
+			xsl = inFile.ReadToEnd();
+			inFile.Close();
 		}
 
 		public void changeHandler (object o, EventArgs args)
@@ -44,7 +49,8 @@ namespace PyroGui
 		public void showBug(bool stacktrace)
 		{
 			XslTransform transform = new XslTransform();
-			transform.Load("bugs.xsl");
+			NonValidatingReader reader = new NonValidatingReader(xsl);
+			transform.Load(reader);
 			transform.Transform(bug.localpath(),bug.localpath()+"-trans");
 
 			TextReader inFile = new StreamReader(bug.localpath()+"-trans");
