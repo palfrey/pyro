@@ -1253,6 +1253,7 @@ Thanks in advance!";
 		
 		public void setStackHash(int id, Stacktrace st)
 		{
+			setExisting(id);
 			IDbCommand dbcmd = dbcon.CreateCommand();
 			dbcmd.CommandText = "update bugs set stackhash=@hash where id="+String.Concat(id);
 			dbcmd.Parameters.Add(new SqliteParameter("@hash",st.getHash()));	
