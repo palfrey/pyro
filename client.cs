@@ -540,13 +540,16 @@ Thanks in advance!";
 		private void setDupeResponse(object curr, object input, Response r)
 		{
 			StringHash orig = (StringHash)curr;
-			if (orig["Status"] == "NEEDINFO" || (orig["Status"] == "RESOLVED" && orig["RESOLUTION"] == "INCOMPLETE"))
+			Bug dupe = (Bug)input;
+			if (dupe == null)
+				throw new Exception("dupe is null!");
+			if (dupe.values!=null && dupe.values.ContainsKey("Status") && (dupe.values["Status"] == "NEEDINFO" || dupe.values["Status"] == "UNCONFIRMED" || (dupe.values["Status"] == "RESOLVED" && dupe.values.ContainsKey("RESOLUTION") && dupe.values["RESOLUTION"] == "INCOMPLETE")))
 				orig["comment"] = "Thanks for taking the time to report this bug.\nThis particular bug has already been reported into our bug tracking system, but the maintainers need more information to fix the bug. Could you please answer the questions in the other report in order to help the developers?";
 			else
     			orig["comment"] = "Thanks for the bug report. This particular bug has already been reported into our bug tracking system, but please feel free to report any further bugs you find";
 			orig["knob"] = "duplicate";
 			orig["resolution"] = "FIXED";
-			orig["dup_id"] = String.Concat(((Bug)input).id);
+			orig["dup_id"] = String.Concat(dupe.id);
 			foreach(string s in orig.Keys)
 			{
 				Console.WriteLine("{0} = {1}",s,orig[s]);
