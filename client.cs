@@ -930,14 +930,7 @@ Thanks in advance!";
 				HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
 				StreamReader sr = new StreamReader(wre.GetResponseStream()); /*, Encoding.UTF8);*/
 				Console.WriteLine("\nResponse for {0}\n",st.path);
-				try
-				{
-					ret = sr.ReadToEnd();
-				}
-				catch
-				{
-					Console.WriteLine("Exception while reading bug");
-				}
+				ret = sr.ReadToEnd();
 				sr.Close();
 				if (!Directory.Exists(cachepath))
 				{
