@@ -471,7 +471,8 @@ namespace Pyro
 									ret.Add(element,reader.Value);
 								break;
 						}
-						reader.Read();
+						if (reader.Read()==false)
+							break;
 					}
 					rows.Add(ret);
 				}
