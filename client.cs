@@ -123,6 +123,7 @@ namespace Pyro
 
 		public void setStackHash(string st)
 		{
+			BugDB.DB.setStackHash(id,st);
 			stackhash = st;
 		}
 
@@ -1258,6 +1259,15 @@ Thanks in advance!";
 			IDbCommand dbcmd = dbcon.CreateCommand();
 			dbcmd.CommandText = "update bugs set stackhash=@hash where id="+String.Concat(id);
 			dbcmd.Parameters.Add(new SqliteParameter("@hash",st.getHash()));	
+			dbcmd.ExecuteNonQuery();
+		}
+
+		public void setStackHash(int id, string st)
+		{
+			setExisting(id);
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "update bugs set stackhash=@hash where id="+String.Concat(id);
+			dbcmd.Parameters.Add(new SqliteParameter("@hash",st));	
 			dbcmd.ExecuteNonQuery();
 		}
 
