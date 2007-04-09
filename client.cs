@@ -1189,8 +1189,25 @@ Thanks in advance!";
 			st.todo = new Stack<Bug>();
 			string hash = st.oldst.getHash();
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select id from bugs where id<"+String.Concat(st.old.id)+" order by id";
+			dbcmd.CommandText = "select id from bugs where stackhash=@hash and id<"+String.Concat(st.old.id)+" order by id";
+			dbcmd.Parameters.Add(new SqliteParameter("@hash",hash));	
 			IDataReader reader = dbcmd.ExecuteReader();
+			if (reader.Read())
+			{
+				Bug b = getExisting(reader.GetInt32(0));
+				if (b.id != 0)
+				{
+					if (b.stackhash != hash)
+						throw new Exception("db error");
+					if (!File.Exists(b.localpath()))
+						throw new Exception("Can't find bug "+String.Concat(b.id));
+					Response.invoke(r,b);
+					return;
+				}
+			}
+			Console.WriteLine("no dupe found in existing db");
+			dbcmd.CommandText = "select id from bugs where stackhash=\"\" and id<"+String.Concat(st.old.id)+" order by id";
+			reader = dbcmd.ExecuteReader();
 			while (reader.Read())
 			{
 				Bug b = getExisting(reader.GetInt32(0));
@@ -1202,13 +1219,6 @@ Thanks in advance!";
 					ids.Add(b.id);
 					if (st.todo.Count>=12)
 						break;
-				}
-				else if (b.stackhash == hash)
-				{
-					if (!File.Exists(b.localpath()))
-						throw new Exception("Can't find bug "+String.Concat(b.id));
-					Response.invoke(r,b);
-					return;
 				}
 			}
 			if (st.todo.Count>0)
