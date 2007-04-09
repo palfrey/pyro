@@ -21,7 +21,7 @@ namespace NonValidating
 		public override string Name
 		{
 			get {
-				if (NodeType == XmlNodeType.Element)
+				if (NodeType == XmlNodeType.Element || NodeType == XmlNodeType.EndElement)
 				{
 					//Console.WriteLine("Looking at name '{0}'",_Name);
 					return _Name;
