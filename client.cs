@@ -475,6 +475,7 @@ namespace Pyro
 							break;
 					}
 					rows.Add(ret);
+					continue;
 				}
 			}
 			return rows.ToArray();
