@@ -416,6 +416,7 @@ namespace PyroGui
 		}
 
 		private void endTask() {endTask(null,null,null);}
+		private void endTask(Response r) {endTask(null,null,r);}
 		private void endTask(object res, object data, Response r)
 		{
 			taskLock = false;
@@ -489,9 +490,8 @@ namespace PyroGui
 				Console.WriteLine("{0} is not triageable",bug.id);
 				BugDB.DB.setDone(bug.id);
 				bug.describe();
-				endTask();
+				endTask(r);
 			}
-			Response.invoke(r,null);
 		}
 
 		private void grabStacktrace(object res, object data, Response r)
@@ -510,8 +510,7 @@ namespace PyroGui
 			{
 				Bug b2 = (Bug)res;
 				postEvent(new Event(BugEvent.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
-				endTask();
-				Response.invoke(r,null);
+				endTask(r);
 			}
 			else
 				bug.similar(new Response(grabSimilar,r,data));
@@ -522,8 +521,7 @@ namespace PyroGui
 			StringHash values = (StringHash)res;
 			if (values["Status"]=="UNCONFIRMED")
 				postEvent(new Event(BugEvent.BadStacktrace,bug,null, "Crap stacktrace?"));
-			endTask();	
-			Response.invoke(r,null);
+			endTask(r);	
 		}
 
 		private Queue<Bug> dupe = null;
@@ -571,7 +569,7 @@ namespace PyroGui
 			if (st == st2)
 			{
 				postEvent(new Event(BugEvent.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
-				endTask();
+				endTask(r);
 			}
 			else
 			{
@@ -591,8 +589,7 @@ namespace PyroGui
 			}
 			else
 				Console.WriteLine("Not unconfirmed, so not need better trace");
-			endTask();
-			Response.invoke(r,null);
+			endTask(r);
 		}
 
 		public static void Main(string[] args)
