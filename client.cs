@@ -653,7 +653,7 @@ Thanks in advance!";
 						tostore[1] = tostore[1].Substring(tostore[1].LastIndexOf("/")+1);
 					}
 
-					if ((last!=null && tostore[0]==last) || Array.IndexOf(worthless,tostore[0])!=-1 || tostore[1].IndexOf("libgobject")!=-1 || tostore[1].IndexOf("libglib")!=-1)
+					if ((last!=null && tostore[0]==last) || Array.IndexOf(worthless,tostore[0])!=-1 || tostore[1].IndexOf("libgobject")!=-1 || tostore[1].IndexOf("libglib")!=-1 || tostore[0].IndexOf("*")!=-1)
 						continue;
 
 					if (seen_signal)
