@@ -452,13 +452,12 @@ namespace PyroGui
 			Response.invoke(r,null);	
 		}
 
-		List<Bug> extra = null;
+		List<Bug> extra = new List<Bug>();
 
 		private void extraBugs(object res, object data, Response r)
 		{
 			Bug []bugs = (Bug[])res;
 			List<int> ids = new List<int>();
-			extra = new List<Bug>();
 			foreach(Bug b in bugs)
 			{
 				if (!BugDB.DB.done(b.id))
