@@ -77,6 +77,8 @@ namespace Pyro
 		{
 			if (r!=null)
 				r.invoke(val);
+			else
+				Console.WriteLine("hit a null invoke");
 		}
 	}
 
