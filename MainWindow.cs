@@ -116,8 +116,7 @@ namespace PyroGui
 			LoginFailure,
 			NoMatch,
 			BadStacktrace,
-			Duplicate,
-			RanOut
+			Duplicate
 		}
 
 		bool didranout = false;
@@ -202,7 +201,10 @@ namespace PyroGui
 		void ready ()
 		{
 			if (doing)
+			{
+				Console.WriteLine("doing == true");
 				return;
+			}
 			if (events.Count>0)
 			{
 				Console.WriteLine("grab event");
@@ -232,7 +234,7 @@ namespace PyroGui
 						hrfBrowser.Url = "http://bugzilla.gnome.org/show_bug.cgi?id="+this.curr.bug.id;
 						doing = true;
 						break;
-					case BugEvent.RanOut:
+					/*case BugEvent.RanOut:
 						this.curr.clear();
 						if (events.Count!=0)
 						{
@@ -245,18 +247,40 @@ namespace PyroGui
 							hasprocess = true;
 							GLib.Idle.Add(new GLib.IdleHandler(processTask));
 						}
-						break;
+						break;*/
 					default:
 						break;
 				}
+				if (didranout)
+				{
+					Console.WriteLine("didranout is true, doing: {0}, events.count: {1}",doing,events.Count);				
+					if (!doing && events.Count == 0)
+					{
+						lblStatus.Text = "Ran out of bugs";
+						((Window)gxml.GetWidget("MainWindow")).Title = "Pyro (Done)";
+					}
+				}
+					
 				Console.WriteLine("grab event done");
 				if (!taskLock)
 					endTask();
 			}
 			else
 			{
-				lblStatus.Text = "Looking for new events...";
-				((Window)gxml.GetWidget("MainWindow")).Title = "Pyro";
+				if (didranout)
+				{
+					Console.WriteLine("didranout is true, doing: {0}, events.count: {1}, hasprocess: {2}, todo.count: {3}",doing,events.Count,hasprocess,todo.Count);
+					if (!doing && events.Count == 0)
+					{
+						lblStatus.Text = "Ran out of bugs";
+						((Window)gxml.GetWidget("MainWindow")).Title = "Pyro (Done)";
+					}
+				}
+				else
+				{
+					lblStatus.Text = "Looking for new events...";
+					((Window)gxml.GetWidget("MainWindow")).Title = "Pyro";
+				}
 				this.curr.clear();
 				this.dupl.clear();
 			}
@@ -401,7 +425,6 @@ namespace PyroGui
 						if (!didranout)
 						{
 							didranout = true;
-							postEvent(new Event(BugEvent.RanOut,null,null,"Ran out of bugs!"));
 						}
 							
 						endTask();
@@ -468,7 +491,7 @@ namespace PyroGui
 				if (!didranout)
 				{
 					didranout = true;
-					postEvent(new Event(BugEvent.RanOut,null,null,"Ran out of bugs!"));
+					Response.invoke(r,null);
 				}
 			}
 			else
