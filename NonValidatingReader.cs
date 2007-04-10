@@ -1,6 +1,7 @@
 using System;
 using System.Xml;
 using System.Collections.Generic;
+using System.Text;
 
 namespace NonValidating
 {
@@ -103,20 +104,23 @@ namespace NonValidating
 			get {
 				if (NodeType == XmlNodeType.Text)
 					return String.Empty;
-				if (Name.IndexOf(":")!=-1)
-					return Name.Substring(Name.IndexOf(":")+1);
+				string N = Name;
+				int idx = N.IndexOf(":");
+				if (idx!=-1)
+					return N.Substring(idx+1);
 				else
-					return Name;
+					return N;
 			}
 		}
 
 		public override string NamespaceURI
 		{
 			get {
+				string N = Name;
 				try
 				{
-					if (Name.IndexOf(":")!=-1)
-						return Namespaces[NameTable.Add(Name.Substring(0,Name.IndexOf(":")))];
+					if (N.IndexOf(":")!=-1)
+						return Namespaces[NameTable.Add(N.Substring(0,N.IndexOf(":")))];
 					/*else if (NodeType == XmlNodeType.Attribute && _Name.IndexOf(":")!=-1)
 						return Namespaces[NameTable.Add(_Name.Substring(0,_Name.IndexOf(":")))];*/
 					else if (NodeType == XmlNodeType.Attribute)
@@ -126,9 +130,9 @@ namespace NonValidating
 				}
 				catch(KeyNotFoundException e)
 				{
-					if (Name.IndexOf(":")!=-1 && Name.IndexOf("xmlns:")==-1)
+					if (N.IndexOf(":")!=-1 && N.IndexOf("xmlns:")==-1)
 					{
-						Console.WriteLine("name: {0} ns: {1}",Name,Name.Substring(0,Name.IndexOf(":")));
+						Console.WriteLine("name: {0} ns: {1}",N,N.Substring(0,N.IndexOf(":")));
 						throw e;
 					}
 					return String.Empty;
@@ -305,9 +309,8 @@ namespace NonValidating
 			}
 			Console.WriteLine("skipped until we saw a {0}",find);
 			//Read();
-			Console.WriteLine("current item is {0} of type {1}",Name,NodeType);	
+			Console.WriteLine("current item is {0} of type {1}",_Name,NodeType);	
 			return content.Substring(start,index-start);
-
 		}
 
 		public override bool Read()
@@ -324,6 +327,7 @@ namespace NonValidating
 			{
 				case XmlNodeType.Text:		
 				case XmlNodeType.None:
+					StringBuilder tempName = null;
 					angle = content.IndexOf("<",index);
 					if (angle == -1)
 					{
@@ -333,32 +337,33 @@ namespace NonValidating
 					int endangle = content.IndexOf(">",angle);
 					if (endangle == -1)
 						throw new Exception("no endangle");
-					_Name = NameTable.Add(content.Substring(angle+1,endangle-angle-1));
-					//Console.WriteLine("name: {0}",_Name);
+					tempName = new StringBuilder(content.Substring(angle+1,endangle-angle-1));
+					//Console.WriteLine("name: {0}",tempName);
 					_NodeType = XmlNodeType.Element;
 					isEmpty = false;
-					if (_Name[0] == '/')
+					if (tempName[0] == '/')
 					{
 						_NodeType = XmlNodeType.EndElement;
-						_Name = NameTable.Add(_Name.Substring(1));
+						tempName.Remove(0,1);
 						_Depth -=1;
 					}
 					else
 					{
-						if (_Name[_Name.Length-1] == '/')
+						if (tempName[tempName.Length-1] == '/')
 						{
 							isEmpty = true;
-							_Name = NameTable.Add(_Name.Substring(0,_Name.Length-1));
+							tempName.Length-=1;
 						}
 					}
-					if (_Name.IndexOf("?xml")==0)
+					if (tempName.ToString().IndexOf("?xml")==0)
 					{
 						_NodeType = XmlNodeType.XmlDeclaration;
-						_Name = _Name.Substring(0,_Name.Length-1);
+						tempName.Length-=1;
 					}
-					if (_Name.IndexOf(" ")!=-1)
+					int space = tempName.ToString().IndexOf(" ");
+					if (space!=-1)
 					{
-						string raw = _Name.Substring(_Name.IndexOf(" ")+1);
+						string raw = tempName.ToString(space+1,tempName.Length-space-1);
 						_Attributes = new Dictionary<string,string>();
 						foreach (String s in raw.Split(new char[]{' ','\t','\n'},StringSplitOptions.RemoveEmptyEntries))
 						{
@@ -403,12 +408,12 @@ namespace NonValidating
 									Console.WriteLine("new ns: {0}",bits[1]);
 								}
 							}
-							_Attributes.Add(NameTable.Add(bits[0].Trim()),NameTable.Add(bits[1]));
+							_Attributes.Add(NameTable.Add(bits[0]),NameTable.Add(bits[1]));
 						}
-						_Name = _Name.Substring(0,_Name.IndexOf(" "));
+						tempName.Remove(space,tempName.Length-space);
 					}
-					//Console.WriteLine("new element: {0}",_Name);
-					_Name = NameTable.Add(_Name);
+					//Console.WriteLine("name: {0}",tempName);
+					_Name = NameTable.Add(tempName.ToString());
 					_Value = String.Empty;
 					begin = index;
 					index = endangle+1;
@@ -432,18 +437,20 @@ namespace NonValidating
 						Console.WriteLine("Content: {0}",content.Substring(index));
 						throw new Exception("no angle");
 					}
-					string text = content.Substring(index,angle-index);
-					if (text.Trim().Length>0)
+					if (angle>index)
 					{
-						begin = index;
-						index += text.Length;
-						_Value = text;
-						_NodeType = XmlNodeType.Text;
-						//Console.WriteLine("text node value: '{0}'",_Value);
-						break;
+						string text = content.Substring(index,angle-index);
+						if (text.Trim().Length>0)
+						{
+							begin = index;
+							index += text.Length;
+							_Value = text;
+							_NodeType = XmlNodeType.Text;
+							//Console.WriteLine("text node value: '{0}'",_Value);
+							break;
+						}
 					}
-					else
-						goto case XmlNodeType.None;
+					goto case XmlNodeType.None;
 
 				case XmlNodeType.Attribute:
 					if (_Attributes.Count>attr_index+1)
