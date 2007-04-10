@@ -405,18 +405,17 @@ namespace PyroGui
 						didcorebugs = true;
 						Console.WriteLine("\nlooking for bugs\n");
 						if (product==null)
-							new Bug(0,bugz).corebugs(new Response(extraBugs));
+							new Bug(0,bugz).corebugs(new Response(extraBugs,new Response(endTask)));
 						else
 						{
 							try
 							{
 								int id = Int32.Parse(product);
-								//bugz.getBug(int[]{new Bug(id,bugz)},new Response(extraBugs));
-								new Bug(0,bugz).numbered(id,id+1,new Response(extraBugs));
+								new Bug(0,bugz).numbered(id,id,new Response(extraBugs,new Response(endTask)));
 							}
 							catch (FormatException)
 							{
-								new Bug(0,bugz).product(product,new Response(extraBugs));
+								new Bug(0,bugz).product(product,new Response(extraBugs,new Response(endTask)));
 							}
 						}
 					}
