@@ -191,6 +191,28 @@ namespace Pyro
 			this.bugz = bugz;
 		}
 
+		void buildBug(Response r) {buildBug(null,r);}
+		void buildBug(object input,Response r)
+		{
+			if (values==null)
+				getValues(null,new Response(checkDupe,r,input));
+			else
+				checkDupe(null,input,r);
+		}
+
+		private void checkDupe(object curr, object input, Response r)
+		{
+			if (dupid!=-1 || values["Status"] != "RESOLVED" || (values.ContainsKey("resolution") && values["resolution"] != "DUPLICATE"))
+				Response.invoke(r,this);
+			else
+				getDupid(new Response(gotDupid,r));
+		}
+
+		private void gotDupid(object curr, object input, Response r)
+		{
+			Response.invoke(r,this);
+		}
+
 		void getComments(Response r)
 		{
 			if (this.comments == null)
