@@ -993,7 +993,11 @@ Thanks in advance!";
 
 		private string path(string cache)
 		{
-			return Path.GetFullPath(Path.Combine(cachepath,cache));
+			string ret = Path.GetFullPath(Path.Combine(cachepath,cache));
+			if (ret.Length>256)
+				return ret.Substring(0,256);
+			else
+				return ret;
 		}
 
 		private bool hasData(string cache)
