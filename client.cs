@@ -185,8 +185,25 @@ namespace Pyro
 			return bugz.bugPath(this.id);
 		}
 		
+		static StringHash mappings = null;
+
 		public Bug(int id, Bugzilla bugz)
 		{
+			if (Bug.mappings == null)
+			{
+				Bug.mappings = new StringHash();
+				mappings.Add("bz:id","ID");
+				mappings.Add("attachment",null); /* ignore attachments */
+				mappings.Add("bug_status","Status");
+				mappings.Add("bug_id","id");
+				mappings.Add("classification_id",null);
+				mappings.Add("classification",null);
+				mappings.Add("reporter_accessible",null);
+				mappings.Add("initialowner_id",null);
+				mappings.Add("creation_ts",null);
+				mappings.Add("cclist_accessible",null);
+				mappings.Add("reporter",null);
+			}
 			this._id = id;
 			this.bugz = bugz;
 		}
@@ -308,16 +325,8 @@ namespace Pyro
 			bugz.stackDupe((Stacktrace)curr, new Response(parseSearchResults,chain));
 		}
 
-		StringHash mappings = null;
-
 		private void parseSearchResults(object curr, object input, Response chain)
 		{
-			if (mappings == null)
-			{
-				mappings = new StringHash();
-				mappings.Add("bz:id","ID");
-			}
-			
 			StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings);
 			//throw new Exception();
 			List<Bug> bugs = new List<Bug>();
@@ -403,6 +412,35 @@ namespace Pyro
 				Priority.Add("Nor","Normal");
 				Priority.Add("Urg","Urgent");
 				keys.Add("Pri",Priority);
+			}
+			foreach(string key in mappings.Keys)
+			{
+				string oldkey = null;
+				if (h.ContainsKey(key))
+					oldkey = key;
+				else if (h.ContainsKey("bz:"+key))
+					oldkey = "bz:"+key;
+				if (oldkey!=null)
+				{
+					h[mappings[key]] = h[oldkey];
+					h.Remove(oldkey);
+				}
+			}
+			bool change = true;
+			while(change)
+			{
+				change = false;
+				foreach(string key in h.Keys)
+				{
+					if (key.Length>3 && key.Substring(0,3) == "bz:")
+					{
+						h[key.Substring(3)] = h[key];
+						h.Remove(key);
+						//Console.WriteLine("replaced {0} with {1}",key,key.Substring(3));
+						change = true;
+						break;
+					}
+				}
 			}
 			foreach(string key in h.Keys)
 			{
@@ -605,19 +643,9 @@ Thanks in advance!";
 
 		private void parseInputResponse(object curr, object input, Response chain)
 		{
-			StringHash mappings = new StringHash();
-			//mappings.Add("long_desc",null); /* ignore comments */
-			mappings.Add("attachment",null); /* ignore attachments */
-			mappings.Add("bug_status","Status");
-			mappings.Add("bug_id","id");
-			mappings.Add("classification_id",null);
-			mappings.Add("classification",null);
-			mappings.Add("reporter_accessible",null);
-			mappings.Add("initialowner_id",null);
-			mappings.Add("creation_ts",null);
-			mappings.Add("cclist_accessible",null);
-			mappings.Add("reporter",null);
-			StringHash orig = Bug.xmlParser((string)curr,"bug",mappings)[0];
+			StringHash orig = Bug.xmlParser((string)curr,"bug",Bug.mappings)[0];
+			this.values = (StringHash)orig;
+			setValues();
 
 			string[] must = new string[] {"blocked","dup_id","keywords","dependson","newcc","status_whiteboard","bug_file_loc","alias"};
 			foreach (string s in must)
