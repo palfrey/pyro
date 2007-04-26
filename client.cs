@@ -61,7 +61,7 @@ namespace Pyro
 			Console.WriteLine("");
 		}
 		
-		public virtual void invoke(object r)
+		public virtual void invoke(object curr)
 		{
 			Response re = null;
 			if (next!=null)
@@ -70,7 +70,7 @@ namespace Pyro
 			Console.WriteLine("Invoking {0} of {1} (depth={2})",call.Method, call.Target,depth);
 			/*if (depth == 4)
 				throw new Exception();*/
-			call(r,input,re);
+			call(curr,input,re);
 		}
 
 		public static void invoke(Response r, object val)
