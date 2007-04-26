@@ -253,19 +253,6 @@ namespace Pyro
 				Response.invoke(r,values);
 		}
 
-		public void getValuesResponse(object res, object input,Response r)
-		{
-			//StringHash mappings = new StringHash();
-			//mappings.Add("long_desc",null); /* ignore comments */
-			//mappings.Add("attachment",null); /* ignore attachments */
-			/*mappings.Add("bug_status","Status");
-			mappings.Add("priority","Priority");
-			mappings.Add("bug_severity","Severity");*/
-			this.values = (StringHash)res; /*xmlParser((string)res,"bug",mappings)[0];*/
-			BugDB.DB.setValues(id,values);
-			Response.invoke(r,values);
-		}
-
 		public void describe()
 		{
 			Console.WriteLine("id = {0}",id);
