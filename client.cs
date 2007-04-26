@@ -543,19 +543,49 @@ Thanks in advance!";
 			}
 		}
 
+		private struct DupeStorage
+		{
+			public StringHash orig;
+			public Bug dupe;
+		};
+
+		private void dupidResponse(object curr, object input, Response r)
+		{
+			DupeStorage ds = (DupeStorage)input;
+			setDupeResponse(ds.orig,ds.dupe,r);
+		}
+		
 		private void setDupeResponse(object curr, object input, Response r)
 		{
 			StringHash orig = (StringHash)curr;
 			Bug dupe = (Bug)input;
 			if (dupe == null)
 				throw new Exception("dupe is null!");
-			if (dupe.values!=null && dupe.values.ContainsKey("Status") && (dupe.values["Status"] == "NEEDINFO" || dupe.values["Status"] == "UNCONFIRMED" || (dupe.values["Status"] == "RESOLVED" && dupe.values.ContainsKey("RESOLUTION") && dupe.values["RESOLUTION"] == "INCOMPLETE")))
+			if (dupe.values == null)
+				throw new Exception("dupe.values is null!");
+			int dup_id = dupe.id;	
+			if (dupe.values["Status"] == "RESOLVED" && dupe.values["resolution"] == "DUPLICATE")
+			{
+				if (dupe.dupid == -1)
+				{
+					DupeStorage ds = new DupeStorage();
+					ds.orig = orig;
+					ds.dupe = dupe;
+					dupe.getDupid(new Response(dupidResponse,r,ds));
+					return;
+				}
+				else
+					dup_id = dupe.dupid;
+			}
+			if (dupe.values["Status"] == "NEEDINFO" || dupe.values["Status"] == "UNCONFIRMED" || (dupe.values["Status"] == "RESOLVED" && dupe.values.ContainsKey("resolution") && dupe.values["resolution"] == "INCOMPLETE"))
 				orig["comment"] = "Thanks for taking the time to report this bug.\nThis particular bug has already been reported into our bug tracking system, but the maintainers need more information to fix the bug. Could you please answer the questions in the other report in order to help the developers?";
+			else if (dupe.values["Status"] == "RESOLVED" && dupe.values["resolution"] == "FIXED")
+				orig["comment"] = "Thanks for taking the time to report this bug.\nThis particular bug has already been reported into our bug tracking system, but we are happy to tell you that the problem has already been fixed. It should be solved in the next software version. You may want to check for a software upgrade.";
 			else
-    			orig["comment"] = "Thanks for the bug report. This particular bug has already been reported into our bug tracking system, but please feel free to report any further bugs you find";
+				orig["comment"] = "Thanks for the bug report. This particular bug has already been reported into our bug tracking system, but please feel free to report any further bugs you find";
 			orig["knob"] = "duplicate";
 			orig["resolution"] = "FIXED";
-			orig["dup_id"] = String.Concat(dupe.id);
+			orig["dup_id"] = String.Concat(dup_id);
 			foreach(string s in orig.Keys)
 			{
 				if (s!="thetext")
@@ -609,6 +639,49 @@ Thanks in advance!";
 			}
 			//throw new Exception();
 			Response.invoke(chain,orig);
+		}
+
+		public void getDupid(Response r)
+		{
+			if (dupid!=-1 || values["Status"] != "RESOLVED" || (values.ContainsKey("resolution") && values["resolution"] != "DUPLICATE"))
+				Response.invoke(r,dupid);
+			else
+				getRaw(new Response(getDupidWithData,r));
+		}
+
+		public void getDupidWithData(object curr, object input, Response chain)
+		{
+			string raw = (string)curr;
+			const string pattern = "\\*\\*\\* This bug has been marked as a duplicate of (\\d+) \\*\\*\\*";
+			MatchCollection mc = Regex.Matches(raw, pattern, RegexOptions.Singleline);
+			Match m = mc[mc.Count-1];
+			int new_idx = System.Convert.ToInt32(m.Groups[1].Captures[0].Value, 10);
+			Console.WriteLine("dupid is {0} for {1}",new_idx,id);
+			dupid = new_idx;
+			Bug b = getExisting(new_idx);
+			if (b != null && b.values!=null)
+				dupeParent(b,input,chain);
+			else
+			{
+				b = new Bug(new_idx,bugz);
+				b.buildBug(new Response(dupeParent,chain,input));
+			}
+		}
+
+		public void dupeParent(object curr,object input, Response chain)
+		{
+			Bug parent = (Bug)curr;
+			parent.getDupid(new Response(dupeParentRet,chain,input));
+		}
+		
+		public void dupeParentRet(object curr,object input, Response chain)
+		{
+			int poss = (int)curr;
+			if (poss !=-1)
+				dupid = poss;
+			if (values!=null)	
+				setValues();	
+			Response.invoke(chain,dupid);
 		}
 	}
 
