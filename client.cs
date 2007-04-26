@@ -117,15 +117,22 @@ namespace Pyro
 			_raw = null;
 		}
 
+		public void setValues()
+		{
+			BugDB.DB.setValues(this);
+		}
+
 		public void setStackHash(Stacktrace st)
 		{
 			BugDB.DB.setStackHash(id,st);
+			setValues();
 			stackhash = st.getHash();
 		}
 
 		public void setStackHash(string st)
 		{
 			BugDB.DB.setStackHash(id,st);
+			setValues();
 			stackhash = st;
 		}
 
