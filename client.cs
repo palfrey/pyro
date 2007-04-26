@@ -260,7 +260,8 @@ namespace Pyro
 				return;
 			foreach(string s in values.Keys)
 			{
-				Console.WriteLine("{0} = {1}",s,values[s]);
+				if (s!="thetext")
+					Console.WriteLine("{0} = {1}",s,values[s]);
 			}
 		}
 		
@@ -571,7 +572,8 @@ Thanks in advance!";
 			orig["dup_id"] = String.Concat(dupe.id);
 			foreach(string s in orig.Keys)
 			{
-				Console.WriteLine("{0} = {1}",s,orig[s]);
+				if (s!="thetext")
+					Console.WriteLine("{0} = {1}",s,orig[s]);
 			}
 			bugz.changeBug(orig);
 			remove(r);
@@ -616,7 +618,8 @@ Thanks in advance!";
 			orig["delta_ts"] = DateTime.ParseExact(orig["delta_ts"], "yyyy-MM-dd HH:mm:ss UTC", null).ToString("yyyy-MM-dd HH:mm:ss");
 			foreach(string s in orig.Keys)
 			{
-				Console.WriteLine("{0} = {1}",s,orig[s]);
+				if (s!="thetext")
+					Console.WriteLine("pit: {0} = {1}",s,orig[s]);
 			}
 			//throw new Exception();
 			Response.invoke(chain,orig);
