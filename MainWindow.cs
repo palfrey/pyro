@@ -398,7 +398,7 @@ namespace PyroGui
 			if (events.Count<20)
 			{
 				taskLock = true;
-				if (todo.Count == 0)
+				if (todo.Count == 0 && extra.Count == 0)
 				{
 					if (!didcorebugs)
 					{
@@ -442,7 +442,7 @@ namespace PyroGui
 		private void endTask(object res, object data, Response r)
 		{
 			taskLock = false;
-			if (!hasprocess && (!didranout || deltas.Count>0))
+			if (!hasprocess && (!didranout || deltas.Count>0 || extra.Count>0|| todo.Count>0))
 			{
 				hasprocess = true;
 				GLib.Idle.Add(new GLib.IdleHandler(processTask));
@@ -452,7 +452,7 @@ namespace PyroGui
 			Response.invoke(r,null);	
 		}
 
-		List<Bug> extra = new List<Bug>();
+		Queue<Bug> extra = new Queue<Bug>();
 
 		private void extraBugs(object res, object data, Response r)
 		{
@@ -465,15 +465,22 @@ namespace PyroGui
 					if (todo.Count<=20)
 					{
 						todo.Enqueue(b);
+						Console.WriteLine("{0} is todo",b.id);
 						ids.Add(b.id);
 					}
 					else
-						extra.Add(b);
+					{
+						Console.WriteLine("{0} is extra",b.id);
+						extra.Enqueue(b);
+					}
 				}
 				else
 					Console.WriteLine("{0} is marked as done",b.id);
 			}
-			bugz.getBug(ids.ToArray(),new VoidResponse(nextBug,r));
+			if (ids.Count>0)
+				bugz.getBug(ids.ToArray(),new VoidResponse(nextBug,r));
+			else
+				Response.invoke(r,null);
 			//nextBug(r);
 		}
 
@@ -485,7 +492,14 @@ namespace PyroGui
 			if (todo.Count==0)
 			{
 				if (extra.Count>0)
-					throw new Exception();
+				{
+					Console.Write("extra.count: {0}",extra.Count);
+					while (todo.Count<=20 && extra.Count>0)
+						todo.Enqueue(extra.Dequeue());
+					nextBug(res,input,r);
+					return;
+					//throw new Exception();
+				}
 				if (!didranout)
 				{
 					didranout = true;
@@ -530,6 +544,10 @@ namespace PyroGui
 			if (res!=null)
 			{
 				Bug b2 = (Bug)res;
+				if (b2.values == null)
+					throw new Exception("dupes values are null!");
+				if (b2.values["Status"] == "RESOLVED" && b2.values["resolution"] == "DUPLICATE" && b2.dupid==-1)
+					throw new Exception("dupes is a dupe, but no dupid!");
 				postEvent(new Event(BugEvent.Duplicate,bug,b2,String.Format("{0} and {1} are duplicates?",bug.id,b2.id)));
 				endTask(r);
 			}
