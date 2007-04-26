@@ -518,8 +518,7 @@ http://live.gnome.org/GettingTraces for more information on how to do so.
 Thanks in advance!";
 			orig["knob"] = "needinfo";
 			orig["resolution"] = "FIXED";
-			bugz.changeBug(orig);
-			remove(r);
+			bugz.changeBug(orig,new Response(remove,r));
 		}
 		
 		public void setDupe(Response r, Bug dupe)
@@ -591,8 +590,7 @@ Thanks in advance!";
 				if (s!="thetext")
 					Console.WriteLine("{0} = {1}",s,orig[s]);
 			}
-			bugz.changeBug(orig);
-			remove(r);
+			bugz.changeBug(orig,new Response(remove,r));
 		}
 		
 		private void parseInput(Response r)
@@ -1163,7 +1161,14 @@ Thanks in advance!";
 			getData("buglist.cgi?ctype=rdf&order=bug_id&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
 		}
 
-		public bool changeBug(StringHash values)
+		private struct changeState
+		{
+			public HttpWebRequest req;
+			public string query;
+			public byte[] data;
+		}
+
+		public void changeBug(StringHash values, Response chain)
 		{
 			StringBuilder query = new StringBuilder();
 			string [] dont = {"thetext","Status","bug_when"};
@@ -1177,38 +1182,61 @@ Thanks in advance!";
 				query.AppendFormat("{0}={1}",s,values[s].Replace("&#64;","%40"));
 			}
 			ASCIIEncoding encoding=new ASCIIEncoding();
-			byte[]  data = encoding.GetBytes(query.ToString());
 
-			HttpWebRequest myRequest = genRequest("process_bug.cgi");
-			myRequest.Method = "POST";
-			myRequest.ContentType="application/x-www-form-urlencoded";
-			myRequest.ContentLength = data.Length;
-			myRequest.CookieContainer = cookies;
+			changeState state = new changeState();
+			state.data = encoding.GetBytes(query.ToString());
 
-			Stream newStream=myRequest.GetRequestStream();
-			newStream.Write(data,0,data.Length);
-			newStream.Close();
+			state.query = query.ToString();
+			state.req = genRequest("process_bug.cgi");
+			state.req.Method = "POST";
+			state.req.ContentType="application/x-www-form-urlencoded";
+			state.req.ContentLength = state.data.Length;
+			state.req.CookieContainer = cookies;
+
 			Console.WriteLine("Doing bug update");
+			state.req.BeginGetRequestStream(new AsyncCallback(changeCallback),new Response(getDataShim,chain,state));
+		}
 
-			HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
-			StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
-			string ret = "";
+		private void changeCallback(IAsyncResult ar)
+		{
 			try
 			{
-				ret = sr.ReadToEnd();
+				Response r = (Response)ar.AsyncState;
+				changeState st = (changeState)r.input;
+				Stream newStream=st.req.EndGetRequestStream(ar);
+				newStream.Write(st.data,0,st.data.Length);
+				newStream.Close();
+				HttpWebResponse wre = (HttpWebResponse) st.req.GetResponse();
+				//HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
+				StreamReader sr = new StreamReader(wre.GetResponseStream());
+
+				string ret = "";
+				try
+				{
+					ret = sr.ReadToEnd();
+				}
+				catch
+				{
+					Console.WriteLine("Exception while reading bug");
+				}
+				sr.Close();
+				TextWriter outFile = new StreamWriter("change-test");
+				outFile.Write(st.query);
+				outFile.Write("\n\n");
+				outFile.Write(ret);
+				outFile.Close();
+				Console.WriteLine("Bug update complete");
+				Response.invoke(r,false);
 			}
-			catch
+			catch (Exception e)
 			{
-				Console.WriteLine("Exception while reading bug");
+				/* necessary because of http://bugzilla.gnome.org/show_bug.cgi?id=395709 */
+				Console.WriteLine("async exception");
+				Console.WriteLine(e.Message);
+				Console.WriteLine(e.StackTrace);
+				Environment.Exit(1);
+				throw e;
 			}
-			sr.Close();
-			TextWriter outFile = new StreamWriter("change-test");
-			outFile.Write(query.ToString());
-			outFile.Write("\n\n");
-			outFile.Write(ret);
-			outFile.Close();
-			Console.WriteLine("Bug update complete");
-			return false;
 		}
 	}
 
