@@ -96,8 +96,8 @@ namespace Pyro
 
 	public class Bug
 	{
-		StringHash values = null;
-		string[] comments = null;
+		public StringHash values = null;
+		string comments = null;
 		int _id;
 		public int dupid = -1;
 
@@ -224,21 +224,7 @@ namespace Pyro
 		private void getCommentsCallback(object o, object input, Response r)
 		{
 			StringHash s = (StringHash)o;
-			//string s = (string)o;
-			//string pattern = "<thetext>(.*?)</thetext>";
-			List<string> ret = new List<string>();
-			//Console.WriteLine(s);
-			/*foreach (Match m in Regex.Matches(s, pattern, RegexOptions.Singleline))
-			{
-				//Console.WriteLine(m.Groups[0].Captures.Count);
-				//Console.WriteLine(m.Groups[0].Captures[0].Value);
-				ret.Add(m.Groups[0].Captures[0].Value);
-			}*/
-			ret.Add(s["thetext"]);
-			if (ret.Count==0)
-				throw new Exception();
-			Console.WriteLine("Comments: {0}",ret.Count);
-			this.comments = ret.ToArray();
+			this.comments = s["thetext"];
 			Response.invoke(r,this.comments);
 		}
 	
@@ -306,8 +292,8 @@ namespace Pyro
 
 		public void getStacktraceResponse(object curr, object input, Response chain)
 		{
-			string[] comm = (string[]) curr;
-			Stacktrace st = new Stacktrace(this.id,comm[0]);
+			string comm = (string) curr;
+			Stacktrace st = new Stacktrace(this.id,comm);
 			this.setStackHash(st);
 			chain.invoke(st);
 		}
