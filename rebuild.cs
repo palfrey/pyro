@@ -36,6 +36,7 @@ class Rebuild
 				Console.WriteLine("removing {0}",i);
 			}
 		}
+		throw new Exception();
 
 		foreach(FileInfo f in di.GetFiles())
 		{

@@ -147,7 +147,7 @@ namespace Pyro
 				return;
 			if (values == null)
 				values = new StringHash();
-			values[s] = val;	
+			values[s] = val;
 		}
 		
 		public void getRaw(Response r) { getRaw(false,r);}
@@ -163,7 +163,7 @@ namespace Pyro
 		{
 			this._raw = (string)data;
 			this.values = null;
-			BugDB.DB.setValues(this.id,null);
+			//BugDB.DB.setValues(this.id,null);
 			Response.invoke(chain,data);
 		}
 
@@ -172,7 +172,7 @@ namespace Pyro
 			getRaw(true, r);
 		}
 
-		public void remove(Response r)
+		public void remove(object curr, object input, Response r)
 		{
 			//File.Delete(localpath());
 			//throw new Exception();
@@ -322,7 +322,7 @@ namespace Pyro
 
 		private void similarResponse(object curr, object input, Response chain)
 		{
-			bugz.stackDupe((Stacktrace)curr, new Response(parseSearchResults,chain));
+			bugz.stackDupe((Stacktrace)curr, new Response(parseSearchResults,chain,true));
 		}
 
 		private void parseSearchResults(object curr, object input, Response chain)
@@ -330,7 +330,7 @@ namespace Pyro
 			StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings);
 			//throw new Exception();
 			List<Bug> bugs = new List<Bug>();
-			bool dolimit = true;
+			bool dolimit = false;
 			int limit = 15;
 			if (input!=null)
 				dolimit = (bool)input;
@@ -343,6 +343,7 @@ namespace Pyro
 					b = new Bug(id,this.bugz);
 					b.values = new StringHash();
 					assignKeys(b,h);
+					b.setValues();
 				}
 				bugs.Add(b);
 				Console.WriteLine("new bug {0}",b.id);
@@ -354,6 +355,7 @@ namespace Pyro
 				}
 			}
 			//throw new Exception();
+			Console.WriteLine("we have {0} bugs",bugs.Count);
 			chain.invoke(bugs.ToArray());
 		}
 
@@ -512,6 +514,10 @@ namespace Pyro
 							case XmlNodeType.Text:
 								if (!ret.ContainsKey(element))
 									ret.Add(element,reader.Value);
+								else
+								{
+									ret[element] += "\n\n"+reader.Value;
+								}
 								break;
 						}
 						if (reader.Read()==false)
@@ -720,7 +726,7 @@ Thanks in advance!";
 		public List<string[]> content = null;
 		public int id;
 
-		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_str_hash","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gdk_window_process_all_updates","gtk_widget_show","g_cclosure_marshal_VOID__BOOLEAN","__cxa_finalize","_fini","gtk_widget_size_request","g_cclosure_marshal_VOID__OBJECT","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_gtk_marshal_BOOLEAN__BOXED","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init"};
+		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_str_hash","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gdk_window_process_all_updates","gtk_widget_show","g_cclosure_marshal_VOID__BOOLEAN","__cxa_finalize","_fini","gtk_widget_size_request","g_cclosure_marshal_VOID__OBJECT","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_gtk_marshal_BOOLEAN__BOXED","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init","free"};
 
 		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style"};
 		
@@ -759,7 +765,7 @@ Thanks in advance!";
 						tostore[1] = tostore[1].Substring(tostore[1].LastIndexOf("/")+1);
 					}
 
-					if ((last!=null && tostore[0]==last) || tostore[0].IndexOf("POA")==0 || tostore[0].IndexOf("_dl_")==0|| Array.IndexOf(worthless,tostore[0])!=-1 || tostore[1].IndexOf("libgobject")!=-1 || tostore[1].IndexOf("libglib")!=-1 || tostore[0].IndexOf("*")!=-1 || tostore[0].IndexOf("__")==0)
+					if ((last!=null && tostore[0]==last) || tostore[0].IndexOf("POA")==0 || tostore[0].IndexOf("_dl_")==0|| Array.IndexOf(worthless,tostore[0])!=-1 || tostore[1].IndexOf("libgobject")!=-1 || tostore[1].IndexOf("libglib")!=-1 || tostore[0].IndexOf("*")!=-1 || tostore[0].IndexOf("__")!=-1)
 						continue;
 
 					if (seen_signal)
@@ -860,6 +866,7 @@ Thanks in advance!";
 				Console.WriteLine("{0} {1}",s[0],s[1]);
 			}
 		}
+
 	}
 
 	public class Bugzilla
@@ -1005,7 +1012,7 @@ Thanks in advance!";
 			return new FileInfo(path(cache)).Exists;
 		}
 
-		private string readData(string cache)
+		public string readData(string cache)
 		{
 			StreamReader inFile = new StreamReader(path(cache));
 			string ret = inFile.ReadToEnd();
@@ -1086,6 +1093,7 @@ Thanks in advance!";
 			public bool ignorecache;
 		}
 		
+		public void getBug(int id, Response r) { getBug(new int[]{id},r);}
 		public void getBug(int[] id, Response r) { getBug(id,false, r);}
 
 		public void getBug(int[] id, bool ignorecache, Response r)
@@ -1154,8 +1162,13 @@ Thanks in advance!";
 			else
 			{
 				StringBuilder ret = new StringBuilder();
+				Console.Write("Splitbugs list: ");
 				foreach (int x in bl.complete)
+				{
 					ret.Append(readData(bugPath(x)));
+					Console.Write("{0} ",x);
+				}
+				Console.WriteLine("");
 				Response.invoke(r,ret.ToString());	
 			}
 		}
@@ -1298,7 +1311,7 @@ Thanks in advance!";
 			IDataReader reader = dbcmd.ExecuteReader();
 			if (!reader.Read())
 			{
-				dbcmd = new SqliteCommand("create table bugs(id integer primary key, done boolean, Status text, Priority text, Severity Text, stackhash text)",dbcon);
+				dbcmd = new SqliteCommand("create table bugs(id integer primary key, done boolean, Status text, Priority text, Severity Text, stackhash text, Resolution Text, dupid integer)",dbcon);
 				dbcmd.ExecuteReader();
 			}
 			bugs = new Dictionary<int,Bug>();
@@ -1348,8 +1361,15 @@ Thanks in advance!";
 						throw new Exception("db error");
 					if (!File.Exists(b.localpath()))
 						throw new Exception("Can't find bug "+String.Concat(b.id));
-					Response.invoke(r,b);
-					return;
+					if (b.values["Status"] == "RESOLVED" && b.values["resolution"] == "DUPLICATE" && b.dupid==-1)
+					{
+						//throw new Exception("dupes is a dupe, but no dupid!");
+					}
+					else
+					{
+						Response.invoke(r,b);
+						return;
+					}
 				}
 			}
 			Console.WriteLine("no dupe found in existing db");
@@ -1388,24 +1408,27 @@ Thanks in advance!";
 				return false;
 		}
 
-		public void setValues(int id, StringHash values)
+		public void setValues(Bug b)
 		{
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			if (values == null)
+			if (b.values == null)
+			{
 				dbcmd.CommandText = "update bugs set Status=\"\",Priority=\"\",Severity=\"\"";
+				throw new Exception("no values!");
+			}
 			else
 			{
-				dbcmd.CommandText = "update bugs set Status=\""+values["Status"]+"\"";
-				if (values.ContainsKey("priority"))
-					dbcmd.CommandText += ",Priority=\""+values["priority"]+"\"";
-				else
-					dbcmd.CommandText += ",Priority=\"\"";
-				if (values.ContainsKey("bug_severity"))
-					dbcmd.CommandText += ",Severity=\""+values["bug_severity"]+"\"";
-				else	
-					dbcmd.CommandText += ",Severity=\"\"";
+				dbcmd.CommandText = "update bugs set Status=\""+b.values["Status"]+"\"";
+				if (b.values.ContainsKey("priority"))
+					dbcmd.CommandText += ",Priority=\""+b.values["priority"]+"\"";
+				if (b.values.ContainsKey("bug_severity"))
+					dbcmd.CommandText += ",Severity=\""+b.values["bug_severity"]+"\"";
+				if (b.values.ContainsKey("resolution"))
+					dbcmd.CommandText += ",Resolution=\""+b.values["resolution"]+"\"";
+				dbcmd.CommandText += ",dupid="+String.Concat(b.dupid);
 			}
-			dbcmd.CommandText += " where id="+String.Concat(id);
+			dbcmd.CommandText += " where id="+String.Concat(b.id);
+			//throw new Exception(dbcmd.CommandText);
 			dbcmd.ExecuteNonQuery();
 		}
 		
@@ -1443,7 +1466,14 @@ Thanks in advance!";
 				getExisting(st2.id).clearRaw();
 				if (st2 == st.oldst)
 				{
-					Response.invoke(r,getExisting(st2.id));
+					Bug b = getExisting(st2.id);
+					if (b.stackhash != st.oldst.getHash())
+						throw new Exception("db error");
+					if (!File.Exists(b.localpath()))
+						throw new Exception("Can't find bug "+String.Concat(b.id));
+					/*if (b.values["Status"] == "RESOLVED" && b.values["resolution"] == "DUPLICATE")
+						b.getDupid();*/
+					Response.invoke(r,b);
 					return;
 				}
 			}
@@ -1467,7 +1497,7 @@ Thanks in advance!";
 			if (bugs.ContainsKey(id))
 				return bugs[id];
 			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "select Severity,Priority,Status,stackhash from bugs where id="+String.Concat(id);
+			dbcmd.CommandText = "select Severity,Priority,Status,stackhash,Resolution from bugs where id="+String.Concat(id);
 			IDataReader reader = dbcmd.ExecuteReader();
 			if (reader.Read())
 			{
@@ -1480,6 +1510,8 @@ Thanks in advance!";
 					ret.setValue("Status",reader.GetString(2));
 				if (!reader.IsDBNull(3))
 					ret.setStackHash(reader.GetString(3));
+				if (!reader.IsDBNull(4))
+					ret.setValue("resolution",reader.GetString(4));
 				bugs[id] = ret;
 				return ret;
 			}

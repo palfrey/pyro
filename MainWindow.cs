@@ -200,6 +200,7 @@ namespace PyroGui
 
 		void ready ()
 		{
+			Console.WriteLine("ready event");
 			if (doing)
 			{
 				Console.WriteLine("doing == true");
@@ -353,6 +354,7 @@ namespace PyroGui
 
 		public bool processTask()
 		{
+			//Console.WriteLine("processTask");
 			if (taskLock)
 			{
 				hasprocess = false;
@@ -458,6 +460,7 @@ namespace PyroGui
 		{
 			Bug []bugs = (Bug[])res;
 			List<int> ids = new List<int>();
+			Console.WriteLine("we have {0} bugs",bugs.Length);
 			foreach(Bug b in bugs)
 			{
 				if (!BugDB.DB.done(b.id))
@@ -633,7 +636,7 @@ namespace PyroGui
 
 		public static void Main(string[] args)
 		{
-			Gdk.Threads.Init();
+			//Gdk.Threads.Init();
 			Application.Init();
 			new MainWindow(args);
 			Application.Run();
