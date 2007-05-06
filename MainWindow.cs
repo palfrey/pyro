@@ -397,7 +397,7 @@ namespace PyroGui
 				d.b.clearRaw();
 				return true;
 			}
-			if (events.Count<20)
+			if (events.Count<5)
 			{
 				taskLock = true;
 				if (todo.Count == 0 && extra.Count == 0)

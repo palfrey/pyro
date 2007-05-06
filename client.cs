@@ -169,15 +169,17 @@ namespace Pyro
 
 		public void refresh(Response r)
 		{
-			getRaw(true, r);
+			//getRaw(true, r);
+			//getRaw(false, r);
+			Response.invoke(r,null);
 		}
 
 		public void remove(object curr, object input, Response r)
 		{
 			//File.Delete(localpath());
 			//throw new Exception();
-			BugDB.DB.remove(this.id);
-			Response.invoke(r,null);
+			//BugDB.DB.remove(this.id);
+			Response.invoke(r,input);
 		}
 
 		public string localpath()
@@ -354,6 +356,8 @@ namespace Pyro
 						break;
 				}
 			}
+			/*if (bugs.Count==0)
+				throw new Exception("no bugs in result!");*/
 			//throw new Exception();
 			Console.WriteLine("we have {0} bugs",bugs.Count);
 			chain.invoke(bugs.ToArray());
@@ -457,6 +461,7 @@ namespace Pyro
 							if (of!=-1)
 							{
 								b.dupid = int.Parse(h[key].Substring(of+4,h[key].IndexOf(")",of)-of-4));
+
 								//Console.WriteLine("dupid: {0} orig: {1}",b.dupid,h[key]);
 							}
 							break;	
@@ -669,7 +674,6 @@ Thanks in advance!";
 				if (s!="thetext")
 					Console.WriteLine("pit: {0} = {1}",s,orig[s]);
 			}
-			//throw new Exception();
 			Response.invoke(chain,orig);
 		}
 
@@ -728,7 +732,7 @@ Thanks in advance!";
 
 		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_str_hash","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gdk_window_process_all_updates","gtk_widget_show","g_cclosure_marshal_VOID__BOOLEAN","__cxa_finalize","_fini","gtk_widget_size_request","g_cclosure_marshal_VOID__OBJECT","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_gtk_marshal_BOOLEAN__BOXED","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init","free"};
 
-		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style"};
+		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style","gtk_button_clicked","gtk_button_released","gtk_widget_get_default_style","gdk_window_is_viewable"};
 		
 		public Stacktrace(int id, string data)
 		{
@@ -785,8 +789,21 @@ Thanks in advance!";
 				}
 			}
 
-			if (this.content.Count == 1 && Array.IndexOf(single_notuse,this.content[0][0])!=-1)
-				this.content.RemoveAt(0);
+			bool gooditem = false;
+			for (int i=0;i<this.content.Count;i++)
+			{
+				if (Array.IndexOf(single_notuse,this.content[i][0])==-1)
+				{
+					gooditem = true;
+					break;
+				}
+			}
+			if (!gooditem)
+			{
+				Console.WriteLine("entire trace is useless");
+				while (this.content.Count>0)
+					this.content.RemoveAt(0);
+			}
 		
 
 			/*foreach(string[] s in this.content.ToArray(typeof(string[])))
@@ -1190,7 +1207,7 @@ Thanks in advance!";
 
 		public void corebugs(Response r)
 		{
-			getData("reports/core-bugs-today.cgi","corebugs",true,new Response(corebugsMatcher,r));
+			getData("reports/core-bugs-today.cgi","corebugs",false,new Response(corebugsMatcher,r));
 		}
 
 		private void corebugsMatcher(object res, object input, Response r)
