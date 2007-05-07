@@ -1,3 +1,4 @@
+using Gtk;
 using Pyro;
 using System.IO;
 using System;
@@ -8,19 +9,6 @@ class Rebuild
 	static Queue <Bug> todo = new Queue<Bug>();
 	static string cachepath = "cache";
 	
-	private static string path(string cache)
-	{
-		return Path.GetFullPath(Path.Combine(cachepath,cache));
-	}
-
-	private static string readData(string cache)
-	{
-		StreamReader inFile = new StreamReader(path(cache));
-		string ret = inFile.ReadToEnd();
-		inFile.Close();
-		return ret;
-	}
-
 	public static void Main(string[] args)
 	{
 		Bugzilla bugz = new Bugzilla("http://bugzilla.gnome.org/");
@@ -36,43 +24,39 @@ class Rebuild
 				Console.WriteLine("removing {0}",i);
 			}
 		}
-		throw new Exception();
+		//throw new Exception();
 
 		foreach(FileInfo f in di.GetFiles())
 		{
 			if (f.Name.IndexOf("-")!=-1)
 				continue;
 			try {
+				Console.WriteLine("bug? {0}",f.Name);
 				int id = Int32.Parse(f.Name);
 				if (BugDB.DB.getExisting(id)!=null)
 					continue;
+				Console.WriteLine("Added bug {0}",id);
 				Bug b = new Bug(id,bugz);
 				todo.Enqueue(b);
-				StringHash[] orig = Bug.xmlParser(readData(String.Concat(id)),"bug");
-				if (orig.Length == 0)
-				{
-					Console.WriteLine("{0} is malformatted, removing",id);
-					File.Delete(path(String.Concat(id)));
-					BugDB.DB.remove(id);
-				}
+				if (todo.Count>5)
+					break;
 			}
 			catch (FormatException) {} // ignore. non-id files
 		}
+		//throw new Exception();
 		nextBug(null,null,null);
+		Application.Init();
+		Application.Run();
 	}
 
 	public static void nextBug(object res, object input, Response r)
 	{
-		if (res!=null)
-		{
-			Stacktrace st = (Stacktrace)res;
-			Bug curr = (Bug)input;
-			curr.setStackHash(st);
-		}
 		if (todo.Count!=0)
 		{
 			Bug bug = todo.Dequeue();
-			bug.getValues(null,new Response(doStack,r,bug));
+			//BugDB.DB.setExisting(bug.id);
+			Console.WriteLine("Rebuilding bug {0}",bug.id);
+			bug.buildBug(new Response(doStack,r,bug));
 		}
 	}
 

@@ -7,7 +7,7 @@ PyroCore.dll: client.cs NonValidating.dll
 	gmcs -out:$@ client.cs -debug -target:library -r:System.Web -r:System.Data -r:Mono.Data.SqliteClient -r:NonValidating.dll
 
 rebuild.exe: PyroCore.dll rebuild.cs
-	gmcs rebuild.cs -out:$@ -debug -r:PyroCore.dll
+	gmcs rebuild.cs -out:$@ -debug -r:PyroCore.dll -pkg:gtk-sharp-2.0
 	
 NonValidating.dll: NonValidatingReader.cs
 	gmcs -out:$@ $^ -debug -target:library
