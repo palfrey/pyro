@@ -210,13 +210,19 @@ namespace Pyro
 			this.bugz = bugz;
 		}
 
-		void buildBug(Response r) {buildBug(null,r);}
+		public void buildBug(Response r) {buildBug(this,r);}
 		void buildBug(object input,Response r)
 		{
 			if (values==null)
-				getValues(null,new Response(checkDupe,r,input));
+				getValues(null,new Response(doStack,r,input),input);
 			else
-				checkDupe(null,input,r);
+				doStack(null,input,r);
+		}
+
+		private void doStack(object res, object input, Response r)
+		{
+			Bug bug = (Bug)input;
+			bug.getStacktrace(new Response(checkDupe,r));
 		}
 
 		private void checkDupe(object curr, object input, Response r)
@@ -247,13 +253,11 @@ namespace Pyro
 			Response.invoke(r,this.comments);
 		}
 	
-		public void getValues(string idx, Response r)
+		public void getValues(string idx, Response r) {getValues(idx,r,null);}
+		public void getValues(string idx, Response r, object input)
 		{
 			if (this.values==null || (idx!=null && this._raw == null && !this.values.ContainsKey(idx)))
-			{
-				parseInput(r);
-				//getRaw(new Response(getValuesResponse,r));
-			}
+				parseInput(r, input);
 			else
 				Response.invoke(r,values);
 		}
@@ -730,7 +734,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		public List<string[]> content = null;
 		public int id;
 
-		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_str_hash","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gdk_window_process_all_updates","gtk_widget_show","g_cclosure_marshal_VOID__BOOLEAN","__cxa_finalize","_fini","gtk_widget_size_request","g_cclosure_marshal_VOID__OBJECT","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_gtk_marshal_BOOLEAN__BOXED","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init","free","g_source_is_destroyed","g_main_context_check"};
+		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_assert_warning","g_cclosure_marshal_VOID__VOID","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_str_hash","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gdk_window_process_all_updates","gtk_widget_show","g_cclosure_marshal_VOID__BOOLEAN","__cxa_finalize","_fini","gtk_widget_size_request","g_cclosure_marshal_VOID__OBJECT","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_gtk_marshal_BOOLEAN__BOXED","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init","free"};
 
 		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style","gtk_button_clicked","gtk_button_released","gtk_widget_get_default_style","gdk_window_is_viewable"};
 		
@@ -1331,7 +1335,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		BugDB()
 		{
-			dbcon = new SqliteConnection("URI=file:bugs.db,version=3");
+			dbcon = new SqliteConnection("URI=file:bugs.db,version=3,busy_timeout=100");
 			dbcon.Open();
 			IDbCommand dbcmd = new SqliteCommand("select name from sqlite_master where type='table' and name='bugs'",dbcon);
 			IDataReader reader = dbcmd.ExecuteReader();
@@ -1436,6 +1440,8 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void setValues(Bug b)
 		{
+			if (getExisting(b.id)==null)
+				setExisting(b.id);
 			IDbCommand dbcmd = dbcon.CreateCommand();
 			if (b.values == null)
 			{
@@ -1455,7 +1461,11 @@ reopen this bug or report a new one. Thanks in advance!";
 			}
 			dbcmd.CommandText += " where id="+String.Concat(b.id);
 			//throw new Exception(dbcmd.CommandText);
-			dbcmd.ExecuteNonQuery();
+			int ret = dbcmd.ExecuteNonQuery();
+			if (ret!=1)
+			{
+				throw new Exception(String.Format("rows affected: {0}",ret));
+			}
 		}
 		
 		public void setStackHash(int id, Stacktrace st)
@@ -1539,10 +1549,15 @@ reopen this bug or report a new one. Thanks in advance!";
 				if (!reader.IsDBNull(4))
 					ret.setValue("resolution",reader.GetString(4));
 				bugs[id] = ret;
+				reader.Close();
 				return ret;
 			}
 			else
+			{
+				reader.Close();
+				dbcmd.Cancel();
 				return null;
+			}
 		}
 
 		public void remove(int id)
@@ -1561,6 +1576,8 @@ reopen this bug or report a new one. Thanks in advance!";
 
 			if (!reader.Read())
 			{
+				reader.Close();
+				dbcmd.Cancel();
 				IDbCommand dbcmd2 = dbcon.CreateCommand();
 				dbcmd2.CommandText = "insert into bugs (id,done) values(@id,0)";
 				dbcmd2.Parameters.Add(new SqliteParameter("@id",id));	
