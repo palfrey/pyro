@@ -1250,6 +1250,15 @@ Thanks in advance!";
 					query.Append("&");
 				query.AppendFormat("{0}={1}",s,values[s].Replace("&#64;","%40"));
 			}
+			int id = Int32.Parse(values["id"]);
+			if (BugDB.DB.getExisting(id)==null)
+			{
+				TextWriter outFile = new StreamWriter("change-test");
+				outFile.Write(query);
+				outFile.Close();
+				throw new Exception("bug doesn't exist!");
+			}
+
 			ASCIIEncoding encoding=new ASCIIEncoding();
 
 			changeState state = new changeState();
