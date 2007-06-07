@@ -798,7 +798,7 @@ reopen this bug or report a new one. Thanks in advance!";
 					break;
 				}
 			}
-			if (!gooditem)
+			if (!gooditem || this.content.Count==1)
 			{
 				Console.WriteLine("entire trace is useless");
 				while (this.content.Count>0)
