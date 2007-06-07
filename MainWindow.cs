@@ -380,16 +380,17 @@ namespace PyroGui
 				switch(d.c)
 				{
 					case BugChange.MarkBad:
-						d.b.setBadStacktrace(new Response(endTask));
-						BugDB.DB.setDone(d.b.id);
+						d.b.setBadStacktrace(new Response(doneAndEnd,null,d.b));
+						//BugDB.DB.setDone(d.b.id);
 						break;
 					case BugChange.MarkDupe:
-						d.b.setDupe(new Response(endTask),d.dup);
-						BugDB.DB.setDone(d.b.id);
+						d.b.setDupe(new Response(doneAndEnd,null,d.b),d.dup);
+						//BugDB.DB.setDone(d.b.id);
 						break;
 					case BugChange.MarkDone:
-						BugDB.DB.setDone(d.b.id);
-						endTask();
+						doneAndEnd(null,d.b,null);
+						//BugDB.DB.setDone(d.b.id);
+						//endTask();
 						break;
 					default:
 						throw new Exception();
@@ -437,6 +438,13 @@ namespace PyroGui
 					nextBug(null,null,null);
 			}
 			return true;
+		}
+		
+		private void doneAndEnd(object res, object data, Response r)
+		{
+			Bug	b = (Bug)data;
+			BugDB.DB.setDone(b.id);
+			endTask(r);
 		}
 
 		private void endTask() {endTask(null,null,null);}
