@@ -547,7 +547,7 @@ namespace Pyro
 
 		private void setBadGetVal(object o, object input, Response r)
 		{
-			if (((StringHash)o)["Status"]!="NEEDINFO")
+			if (((StringHash)o)["Status"]!="NEEDINFO" && ((StringHash)o)["Status"]!="INCOMPLETE")
 				parseInput(new Response(setBadStacktraceResponse,r));
 			else
 			{
@@ -563,10 +563,10 @@ namespace Pyro
 Unfortunately, that stack trace is missing some elements that will help a lot
 to solve the problem, so it will be hard for the developers to fix that crash.
 Can you get us a stack trace with debugging symbols? Please see
-http://live.gnome.org/GettingTraces for more information on how to do so.
-Thanks in advance!";
-			orig["knob"] = "needinfo";
-			orig["resolution"] = "FIXED";
+http://live.gnome.org/GettingTraces for more information on how to do so and
+reopen this bug or report a new one. Thanks in advance!";
+			orig["knob"] = "resolve";
+			orig["resolution"] = "INCOMPLETE";
 			bugz.changeBug(orig,new Response(remove,r));
 		}
 		
