@@ -1538,6 +1538,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			if (reader.Read())
 			{
 				Bug ret = new Bug(id,bugz);
+				bugs[id] = ret;
 				if (!reader.IsDBNull(0))
 					ret.setValue("bug_severity",reader.GetString(0));
 				if (!reader.IsDBNull(1))
@@ -1548,7 +1549,6 @@ reopen this bug or report a new one. Thanks in advance!";
 					ret.setStackHash(reader.GetString(3));
 				if (!reader.IsDBNull(4))
 					ret.setValue("resolution",reader.GetString(4));
-				bugs[id] = ret;
 				reader.Close();
 				return ret;
 			}
