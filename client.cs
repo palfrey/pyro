@@ -1062,7 +1062,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			StreamWriter outFile = new StreamWriter(path,false,Encoding.UTF8);
 			Console.WriteLine("Writing {0}",path);
-			outFile.Write(data);
+			outFile.Write(new SafeStringReader(data).ReadToEnd());
 			outFile.Close();
 		}
 
