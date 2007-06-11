@@ -408,7 +408,8 @@ namespace NonValidating
 									Console.WriteLine("new ns: {0}",bits[1]);
 								}
 							}
-							_Attributes.Add(NameTable.Add(bits[0]),NameTable.Add(bits[1]));
+							if (!_Attributes.ContainsKey(NameTable.Add(bits[0])))
+								_Attributes.Add(NameTable.Add(bits[0]),NameTable.Add(bits[1]));
 						}
 						tempName.Remove(space,tempName.Length-space);
 					}
