@@ -49,7 +49,7 @@ namespace Pyro
 
 		private static void checkString(char[] buffer, int start, int count)
 		{
-			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&'};
+			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&',';',',','#'};
 			for (int i=start;i<start+count;i++)
 			{
 				if (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1)
