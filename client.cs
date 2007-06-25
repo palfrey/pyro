@@ -1386,7 +1386,12 @@ reopen this bug or report a new one. Thanks in advance!";
 				if (b.id != 0)
 				{
 					if (b.stackhash != hash)
-						throw new Exception("db error");
+					{
+						Console.WriteLine("Old stackhash: '{0}'",hash);
+						Console.WriteLine("bug stackhash: '{0}'",b.stackhash);
+						b.stackhash = hash;
+						Console.WriteLine("\nDB ERROR!\n");
+					}
 					if (!File.Exists(b.localpath()))
 						throw new Exception("Can't find bug "+String.Concat(b.id));
 					if (b.values["Status"] == "RESOLVED" && b.values["resolution"] == "DUPLICATE" && b.dupid==-1)
