@@ -129,9 +129,9 @@ namespace Pyro
 
 		public void setStackHash(string st)
 		{
+			stackhash = st;
 			BugDB.DB.setStackHash(id,st);
 			setValues();
-			stackhash = st;
 		}
 
 		public static Bug getExisting(int id)
