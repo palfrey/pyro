@@ -1545,7 +1545,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				if (!reader.IsDBNull(2))
 					ret.setValue("Status",reader.GetString(2));
 				if (!reader.IsDBNull(3))
-					ret.setStackHash(reader.GetString(3));
+					ret.stackhash = reader.GetString(3);
 				if (!reader.IsDBNull(4))
 					ret.setValue("resolution",reader.GetString(4));
 				reader.Close();
