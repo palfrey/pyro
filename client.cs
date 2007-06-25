@@ -124,9 +124,7 @@ namespace Pyro
 
 		public void setStackHash(Stacktrace st)
 		{
-			BugDB.DB.setStackHash(id,st);
-			setValues();
-			stackhash = st.getHash();
+			setStackHash(st.getHash());
 		}
 
 		public void setStackHash(string st)
@@ -1470,11 +1468,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		
 		public void setStackHash(int id, Stacktrace st)
 		{
-			setExisting(id);
-			IDbCommand dbcmd = dbcon.CreateCommand();
-			dbcmd.CommandText = "update bugs set stackhash=@hash where id="+String.Concat(id);
-			dbcmd.Parameters.Add(new SqliteParameter("@hash",st.getHash()));	
-			dbcmd.ExecuteNonQuery();
+			setStackHash(id,st.getHash());
 		}
 
 		public void setStackHash(int id, string st)
