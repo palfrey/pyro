@@ -736,6 +736,20 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style","gtk_button_clicked","gtk_button_released","gdk_window_is_viewable","gtk_dialog_run","gtk_container_foreach","gconf_listeners_notify"};
 		
+		bool hasGoodItem()
+		{
+			bool gooditem = false;
+			for (int i=0;i<this.content.Count;i++)
+			{
+				if (Array.IndexOf(single_notuse,this.content[i][0])==-1)
+				{
+					gooditem = true;
+					break;
+				}
+			}
+			return gooditem;
+		}
+
 		public Stacktrace(int id, string data)
 		{
 			this.raw = data;
@@ -751,7 +765,13 @@ reopen this bug or report a new one. Thanks in advance!";
 				if (idx!=-1 && new_idx<idx)
 				{
 					if(seen_signal)
-						break;
+					{
+						if (hasGoodItem())
+							break;	
+						else
+							seen_signal = false;
+					}
+					
 					this.content = new List<string[]>();
 					limit = 0;
 				}
@@ -791,22 +811,13 @@ reopen this bug or report a new one. Thanks in advance!";
 				}
 			}
 
-			bool gooditem = false;
-			for (int i=0;i<this.content.Count;i++)
-			{
-				if (Array.IndexOf(single_notuse,this.content[i][0])==-1)
-				{
-					gooditem = true;
-					break;
-				}
-			}
-			if (!gooditem || this.content.Count==1)
+			if (!hasGoodItem())
 			{
 				Console.WriteLine("entire trace is useless");
 				while (this.content.Count>0)
 					this.content.RemoveAt(0);
 			}
-		
+	
 
 			/*foreach(string[] s in this.content.ToArray(typeof(string[])))
 			{
