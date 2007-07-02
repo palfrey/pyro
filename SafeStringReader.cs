@@ -58,8 +58,14 @@ namespace Pyro
 					if (i!=start && buffer[i-1]=='<')
 						buffer[i-1] = '?';
 				}
-				if (i!=start && buffer[i] == '<' && buffer[i-1] == '<')
-					buffer[i-1] = '?';
+				if (i!=start)
+				{
+					if (buffer[i-1] == '<')
+					{
+						if (buffer[i] == '<' || (buffer[i]!='/' && (Char.ToLower(buffer[i])<'a' || Char.ToLower(buffer[i])>'z')))
+							buffer[i-1] = '?';
+					}
+				}
 			}
 			/*if (ret!=0)
 				Console.WriteLine(buffer,index,ret);*/
