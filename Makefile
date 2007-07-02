@@ -15,3 +15,5 @@ NonValidating.dll: NonValidatingReader.cs
 test.exe: test.cs NonValidating.dll
 	gmcs test.cs -out:$@ -debug -r:NonValidating.dll
 
+stack.exe: stacktest.cs PyroCore.dll
+	gmcs -out:$@ -debug -r:PyroCore.dll stacktest.cs
