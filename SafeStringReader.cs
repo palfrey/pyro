@@ -47,9 +47,12 @@ namespace Pyro
 			return ret;
 		}
 
+		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&',';',',','#','*'};
+		private static string[] entities = {"nbsp","apos","quot","gt","lt","amp"};
+
 		private static void checkString(char[] buffer, int start, int count)
 		{
-			char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&',';',',','#','*'};
+			int inEnt = -1;
 			for (int i=start;i<start+count;i++)
 			{
 				if (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1)
@@ -58,13 +61,31 @@ namespace Pyro
 					if (i!=start && buffer[i-1]=='<')
 						buffer[i-1] = '?';
 				}
-				if (i!=start)
+				else if (i!=start)
 				{
 					if (buffer[i-1] == '<')
 					{
 						if (buffer[i] == '<' || (buffer[i]!='/' && (Char.ToLower(buffer[i])<'a' || Char.ToLower(buffer[i])>'z')))
 							buffer[i-1] = '?';
 					}
+				}
+				if (inEnt==-1 && buffer[i]=='&')
+					inEnt = i+1;
+				else if (inEnt!=-1)
+				{
+					if (buffer[i] == ';')
+					{
+						string check = new String(buffer).Substring(inEnt,i-inEnt);
+						if (Array.IndexOf(entities,check)==-1)
+						{
+							Console.WriteLine("{0} isn't a valid entity",check);
+							buffer[i] = '?';
+							buffer[inEnt-1] = '?';
+						}
+						inEnt = -1;	
+					}
+					else if (Char.ToLower(buffer[i])<'a' || Char.ToLower(buffer[i])>'z')
+						inEnt = -1;
 				}
 			}
 			/*if (ret!=0)
