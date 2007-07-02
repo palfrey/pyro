@@ -331,13 +331,18 @@ namespace Pyro
 
 		private void parseSearchResults(object curr, object input, Response chain)
 		{
-			StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings);
-			//throw new Exception();
-			List<Bug> bugs = new List<Bug>();
 			bool dolimit = false;
-			int limit = 15;
 			if (input!=null)
 				dolimit = (bool)input;
+			int limit;
+			if (dolimit)
+				limit = 15;
+			else
+				limit = -1;
+
+			StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings, limit);
+			//throw new Exception();
+			List<Bug> bugs = new List<Bug>();
 			foreach(StringHash h in core)
 			{
 				int id = System.Convert.ToInt32(h["ID"],10);
@@ -493,6 +498,11 @@ namespace Pyro
 
 		public static StringHash[] xmlParser(string input, string separator, StringHash mappings)
 		{
+			return xmlParser(input,separator,mappings,-1);
+		}
+
+		public static StringHash[] xmlParser(string input, string separator, StringHash mappings, int limit)
+		{
 			List<StringHash> rows = new List<StringHash>();
 			//XmlTextReader reader = new XmlTextReader(new SafeStringReader(input));
 			NonValidatingReader reader = new NonValidatingReader(input);
@@ -531,7 +541,10 @@ namespace Pyro
 							break;
 					}
 					rows.Add(ret);
-					continue;
+					if (limit!=-1 && rows.Count == limit)
+						break;
+					else	
+						continue;
 				}
 			}
 			return rows.ToArray();
