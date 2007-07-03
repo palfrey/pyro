@@ -47,7 +47,7 @@ namespace Pyro
 			return ret;
 		}
 
-		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&',';',',','#','*'};
+		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&',';',',','#','*','[',']'};
 		private static string[] entities = {"nbsp","apos","quot","gt","lt","amp"};
 
 		private static void checkString(char[] buffer, int start, int count)
