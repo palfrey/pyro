@@ -17,3 +17,6 @@ test.exe: test.cs NonValidating.dll
 
 stack.exe: stacktest.cs PyroCore.dll
 	gmcs -out:$@ -debug -r:PyroCore.dll stacktest.cs
+
+getdupe.exe: getdupe.cs PyroCore.dll
+	gmcs -out:$@ -debug -r:PyroCore.dll getdupe.cs -pkg:gtk-sharp-2.0
