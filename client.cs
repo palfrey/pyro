@@ -739,7 +739,7 @@ reopen this bug or report a new one. Thanks in advance!";
 	public class Stacktrace
 	{
 		//const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in <span class=\"trace-function\">([^<]+)</span>\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|<a name=\"stacktrace\"></a><span class=\"trace-handler\">&lt;(signal handler) called&gt;</span>)"; //(?:(?)|
-		const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in ([^\\s]+)\\s+\\([^\\)]*?\\)\\s+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|&lt;(signal handler) called&gt;)"; //(?:(?)|
+		const string pattern = "#(\\d+)\\s+(?:0x[\\da-f]+ in ([^\\s]+)\\s+\\([^\\)]*?\\)[\\s\n]+(?:at\\s+([^:]+:\\d+)|from\\s+([^ \n\r]+))?|&lt;(signal handler) called&gt;)"; //(?:(?)|
 		
 		string raw = "";
 		public List<string[]> content = null;
