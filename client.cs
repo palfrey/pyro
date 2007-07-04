@@ -1253,7 +1253,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				query.Append(" \""+s[0]+"\"");
 				name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
 			}
-			getData("buglist.cgi?ctype=rdf&order=bug_id&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
+			getData("buglist.cgi?ctype=rdf&order=bugs.bug_status,bugs.bug_id&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
 		}
 
 		private struct changeState
