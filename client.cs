@@ -767,8 +767,24 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			this.raw = data;
 			this.id = id;
-			int limit = 0;
 			this.content = new List<string[]>();
+			genStackTrace(data);
+			if (!hasGoodItem())
+			{
+				Console.WriteLine("entire trace is useless");
+				while (this.content.Count>0)
+					this.content.RemoveAt(0);
+			}
+
+			/*foreach(string[] s in this.content.ToArray(typeof(string[])))
+			{
+				Console.WriteLine(s[0]);
+			}*/
+		}
+
+		private void genStackTrace(string data)
+		{
+			int limit = 0;
 			string last = null;
 			bool seen_signal = false;
 			int idx = -1;
@@ -824,18 +840,6 @@ reopen this bug or report a new one. Thanks in advance!";
 				}
 			}
 
-			if (!hasGoodItem())
-			{
-				Console.WriteLine("entire trace is useless");
-				while (this.content.Count>0)
-					this.content.RemoveAt(0);
-			}
-	
-
-			/*foreach(string[] s in this.content.ToArray(typeof(string[])))
-			{
-				Console.WriteLine(s[0]);
-			}*/
 		}
 
 		public static bool operator == (Stacktrace left, Stacktrace right)
