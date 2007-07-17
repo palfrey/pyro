@@ -826,7 +826,7 @@ reopen this bug or report a new one. Thanks in advance!";
 						this.content.Add(tostore);
 						last = tostore[0];
 						limit++;
-						if (limit==6)
+						if (limit==5)
 							break;
 					}
 				}
