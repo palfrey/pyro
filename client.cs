@@ -290,12 +290,7 @@ namespace Pyro
 			}
 			if (_raw!=null)
 			{
-				if (_raw.IndexOf("Traceback (most recent call last):")!=-1) // python, can't triage
-				{
-					Response.invoke(r,false);
-					return;
-				}
-				else if (_raw.IndexOf("Thanks for taking the time to report this bug")!=-1) // triaged!
+				if (_raw.IndexOf("Thanks for taking the time to report this bug")!=-1) // triaged!
 				{
 					Response.invoke(r,false);
 					return;
@@ -768,7 +763,10 @@ reopen this bug or report a new one. Thanks in advance!";
 			this.raw = data;
 			this.id = id;
 			this.content = new List<string[]>();
-			genStackTrace(data);
+			if (data.IndexOf("Traceback (most recent call last):")!=-1)
+				genPythonStackTrace(data);
+			else
+				genStackTrace(data);
 			if (!hasGoodItem())
 			{
 				Console.WriteLine("entire trace is useless");
@@ -842,6 +840,31 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		}
 
+		const string trace = "Traceback \\(most recent call last\\):(.+)";
+		const string pythonPattern = "File &quot;([^&]+)&quot;, line (\\d+), in\\s+([^\\\n]+)";
+		const string pythonExcept = "(.+(?:Exception|Error): .+)"; 
+
+		private void genPythonStackTrace(string data)
+		{
+			Match m2 = Regex.Match(this.raw, Stacktrace.trace, RegexOptions.Singleline);
+			Console.WriteLine("stuff: {0}",m2.Groups[1].Captures[0].Value);
+			string tr = m2.Groups[1].Captures[0].Value;
+			
+			foreach (Match m in Regex.Matches(tr, Stacktrace.pythonPattern, RegexOptions.Singleline))
+			{
+				Console.WriteLine("stuff: {0}, {1}, {2}",Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[2],m.Groups[3]);
+				//this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[2].Captures[0].Value,m.Groups[3].Captures[0].Value});
+				this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[3].Captures[0].Value});
+			}
+
+			m2 = Regex.Match(tr,Stacktrace.pythonExcept);
+			this.content.Add(new string[]{m2.Groups[1].Captures[0].Value});
+
+			//print();
+			//throw new Exception("Python stacktrace");
+		}
+
+
 		public static bool operator == (Stacktrace left, Stacktrace right)
 		{
 			return left.Equals(right);
@@ -871,7 +894,9 @@ reopen this bug or report a new one. Thanks in advance!";
 			{
 				string [] one = this.content[idx];
 				string [] two = right.content[idx];
-				for(int j=0;j<2;j++)
+				if (one.Length!=two.Length)
+					return false;
+				for(int j=0;j<one.Length;j++)
 				{
 					//Console.WriteLine("comparing {0} and {1}",one[j],two[j]);
 					if (one[j]!=two[j])
@@ -891,7 +916,13 @@ reopen this bug or report a new one. Thanks in advance!";
 			StringBuilder ret = new StringBuilder();
 			foreach (string[] s in this.content)
 			{
-				ret.Append(String.Format("{0}:{1}:",s[0],s[1]));
+				StringBuilder sb = new StringBuilder(s[0]);
+				for (int i=1;i<s.Length;i++)
+				{
+					sb.Append(":");
+					sb.Append(s[i]);
+				}
+				ret.Append(sb.ToString());
 			}
 			return ret.ToString();
 		}
@@ -910,7 +941,9 @@ reopen this bug or report a new one. Thanks in advance!";
 			Console.WriteLine("Stacktrace for {0}",this.id);
 			foreach(string[] s in this.content)
 			{
-				Console.WriteLine("{0} {1}",s[0],s[1]);
+				foreach (string b in s)
+					Console.Write("{0} ",b);
+				Console.Write("\n");	
 			}
 		}
 
