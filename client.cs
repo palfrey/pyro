@@ -951,8 +951,8 @@ reopen this bug or report a new one. Thanks in advance!";
 
 	public class Bugzilla
 	{
-		string cachepath = "cache";
 		string root = "";
+		string cachepath = null;
 		
 		WebProxy wp;
 
@@ -970,6 +970,10 @@ reopen this bug or report a new one. Thanks in advance!";
 		public Bugzilla(string root)
 		{
 			this.root = root;
+			cachepath = Path.GetFullPath("cache");
+			if (cachepath[cachepath.Length-1] != Path.DirectorySeparatorChar)
+				cachepath += Path.DirectorySeparatorChar;
+			Console.WriteLine("cachepath {0}",cachepath);
 			wp = null; //new WebProxy("taz",8118);
 			FileInfo f=new FileInfo("cookies.dat");
 			if (f.Exists)
@@ -1078,9 +1082,18 @@ reopen this bug or report a new one. Thanks in advance!";
 			return Regex.Replace(val, pattern, "").Trim();
 		}
 
+		private static char[] valids = {'.','-'};
+
 		private string path(string cache)
 		{
 			string ret = Path.GetFullPath(Path.Combine(cachepath,cache));
+			char[] data = ret.ToCharArray();
+			for (int i=cachepath.Length;i<data.Length;i++)
+			{
+				if (!Char.IsLetterOrDigit(data[i]) && Array.IndexOf(valids,data[i])==-1)
+					data[i] = '-';
+			}
+			ret = new String(data);
 			if (ret.Length>256)
 				return ret.Substring(0,256);
 			else
