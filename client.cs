@@ -818,7 +818,7 @@ reopen this bug or report a new one. Thanks in advance!";
 						tostore[1] = tostore[1].Substring(tostore[1].LastIndexOf("/")+1);
 					}
 
-					if ((last!=null && tostore[0]==last) || tostore[0].IndexOf("POA")==0 || tostore[0].IndexOf("_dl_")==0|| Array.IndexOf(worthless,tostore[0])!=-1 || tostore[1].IndexOf("libgobject")!=-1 || tostore[0].IndexOf("*")!=-1 || tostore[0].IndexOf("__")!=-1)
+					if ((last!=null && tostore[0]==last) || tostore[0].IndexOf("POA")==0 || tostore[0].IndexOf("_dl_")==0|| Array.IndexOf(worthless,tostore[0])!=-1 || tostore[0].IndexOf("*")!=-1 || (tostore[0].IndexOf("__")!=-1 && this.content.Count<2))
 						continue;
 
 					if (seen_signal)
