@@ -56,7 +56,8 @@ namespace PyroGui
 			TextReader inFile = new StreamReader(bug.localpath()+"-trans");
 			string ret = inFile.ReadToEnd();
 			inFile.Close();
-			ret = ret.Replace("&lt;signal handler called&gt;","<a name=\"stacktrace\"><font color=\"#00FF00\">&lt;signal handler called&gt;</font>");
+			ret = ret.Replace("&lt;signal handler called&gt;","<a name=\"stacktrace\" /><font color=\"#00FF00\">&lt;signal handler called&gt;</font>");
+			ret = ret.Replace("Traceback (most recent call last):","<a name=\"stacktrace\" />Traceback (most recent call last):");
 			web.LoadFromString(ret);
 			web.JumpToAnchor(stacktrace?"stacktrace":"c0");
 		}
