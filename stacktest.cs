@@ -9,5 +9,6 @@ public class StackTest
 		string xsl = inFile.ReadToEnd();
 		inFile.Close();
 		Stacktrace st = new Stacktrace(0,xsl);
+		st.print();
 	}
 }
