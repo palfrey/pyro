@@ -689,7 +689,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void getDupid(Response r)
 		{
-			if (dupid!=-1 || values["Status"] != "RESOLVED" || (values.ContainsKey("resolution") && values["resolution"] != "DUPLICATE"))
+			if (dupid!=-1 || values["Status"] != "RESOLVED" || values["resolution"] != "DUPLICATE")
 				Response.invoke(r,dupid);
 			else
 				getRaw(new Response(getDupidWithData,r));
