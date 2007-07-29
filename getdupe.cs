@@ -28,14 +28,22 @@ public class GetDupe
 		Stacktrace st = (Stacktrace)res;
 		st.print();
 		if (st.usable())
+		{
 			BugDB.DB.similar(bug.id,new Response(moreStacktraces,r, data));	
+		}
+		else
+			Console.WriteLine("stacktrace isn't usable");
 	}
 	
 	private void moreStacktraces(object res, object data, Response r)
 	{
 		Console.WriteLine("moreStackTraces: {0}",res);
 		if (res!=null)
+		{
+			Bug b2 = (Bug)res;
 			Console.WriteLine("moreStackTraces: res not null!",res);
+			Console.WriteLine("other bug is {0}, hash is {1}",b2.id,b2.stackhash);
+		}
 		else
 			bug.similar(new Response(grabSimilar,r,data));
 	}
