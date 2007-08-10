@@ -815,6 +815,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				idx = new_idx;	
 				if (m.Groups[2].Captures.Count!=0)
 				{
+					bool usable = true;
 					string[] tostore = new string[2];
 					tostore[0] = m.Groups[2].Captures[0].Value;
 					if (m.Groups[3].Captures.Count!=0)
@@ -828,8 +829,17 @@ reopen this bug or report a new one. Thanks in advance!";
 						tostore[1] = tostore[1].Substring(tostore[1].LastIndexOf("/")+1);
 					}
 
-					if ((last!=null && tostore[0]==last) || tostore[0].IndexOf("POA")==0 || tostore[0].IndexOf("_dl_")==0|| Array.IndexOf(worthless,tostore[0])!=-1 || tostore[0].IndexOf("*")!=-1 || (tostore[0].IndexOf("__")!=-1 && this.content.Count<2))
-						continue;
+					if (tostore[0].IndexOf("_ORBIT_skel_small_")==0)
+						tostore[0] = tostore[0].Substring("_ORBIT_skel_small_".Length);
+
+					//Console.WriteLine("tostore: {0} {1}",tostore[0],tostore[1]);
+
+					if (tostore[0].IndexOf("POA")==0 || tostore[0].IndexOf("_dl_")==0|| Array.IndexOf(worthless,tostore[0])!=-1 || tostore[0].IndexOf("*")!=-1 || (tostore[0].IndexOf("__")!=-1 && this.content.Count<2))
+					{
+						usable = false;
+						tostore[0] = "";
+					}
+					//	continue;
 
 					if (seen_signal)
 					{
