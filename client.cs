@@ -867,7 +867,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		const string pythonPattern = "File &quot;([^&]+)&quot;, line (\\d+), in\\s+([^\\\n]+)";
 		const string pythonExcept = "(.+(?:Exception|Error): .+)"; 
 
-		private void genPythonStackTrace(string data)
+		private bool genPythonStackTrace(string data)
 		{
 			Match m2 = Regex.Match(this.raw, Stacktrace.trace, RegexOptions.Singleline);
 			Console.WriteLine("stuff: {0}",m2.Groups[1].Captures[0].Value);
@@ -877,14 +877,22 @@ reopen this bug or report a new one. Thanks in advance!";
 			{
 				Console.WriteLine("stuff: {0}, {1}, {2}",Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[2],m.Groups[3]);
 				//this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[2].Captures[0].Value,m.Groups[3].Captures[0].Value});
+				if (m.Groups[1].Captures.Count == 0 || m.Groups[3].Captures.Count == 0)
+					goto clear_content;
 				this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[3].Captures[0].Value});
 			}
 
 			m2 = Regex.Match(tr,Stacktrace.pythonExcept);
+			
+			if (m2.Groups[1].Captures.Count == 0)
+				goto clear_content;
 			this.content.Add(new string[]{m2.Groups[1].Captures[0].Value});
 
-			//print();
-			//throw new Exception("Python stacktrace");
+			return true;
+
+			clear_content:
+			this.content.Clear();
+			return false;
 		}
 
 
