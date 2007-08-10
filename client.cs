@@ -729,6 +729,19 @@ reopen this bug or report a new one. Thanks in advance!";
 				setValues();	
 			Response.invoke(chain,dupid);
 		}
+
+		public void buildStacktrace(Response r)
+		{
+			if (this.comments == null)
+				buildBug(new Response(buildStacktraceResponse,r));
+			else
+				buildStacktraceResponse(null,null,r);
+		}
+
+		private void buildStacktraceResponse(object curr, object input, Response chain)
+		{
+			chain.invoke(new Stacktrace(this.id,this.comments));
+		}
 	}
 
 	public class Stacktrace
