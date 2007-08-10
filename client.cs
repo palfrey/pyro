@@ -1190,6 +1190,8 @@ reopen this bug or report a new one. Thanks in advance!";
 				}
 				Console.WriteLine("Got {0}",st.path);
 				writePath(st.path,ret);
+				if (ret.IndexOf("Ill-formed Query")!=-1)
+					throw new Exception("Bad query!");
 				Response.invoke(r,ret);
 			}
 			catch (Exception e)
