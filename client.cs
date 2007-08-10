@@ -919,9 +919,10 @@ reopen this bug or report a new one. Thanks in advance!";
 				return false;
 			if (ReferenceEquals(this,right))
 				return true;
-			if (this.content.Count!= right.content.Count)
+			int smallest = this.content.Count<right.content.Count?this.content.Count:right.content.Count;
+			if (smallest == 0)
 				return false;
-			for(int idx = 0;idx<this.content.Count;idx++)
+			for(int idx = 0;idx<smallest;idx++)
 			{
 				string [] one = this.content[idx];
 				string [] two = right.content[idx];
@@ -929,7 +930,9 @@ reopen this bug or report a new one. Thanks in advance!";
 					return false;
 				for(int j=0;j<one.Length;j++)
 				{
-					//Console.WriteLine("comparing {0} and {1}",one[j],two[j]);
+					Console.WriteLine("comparing {0} and {1}",one[j],two[j]);
+					if (one[j] == ""|| two[j] == "") // "" == junk, which matches all
+						break;
 					if (one[j]!=two[j])
 						return false;
 				}
@@ -1331,8 +1334,11 @@ reopen this bug or report a new one. Thanks in advance!";
 			StringBuilder name = new StringBuilder("stackdupe");
 			foreach(string[] s in st.content)
 			{
-				query.Append(" \""+s[0]+"\"");
-				name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
+				if (s[0]!="")
+				{
+					query.Append(" \""+s[0]+"\"");
+					name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
+				}
 			}
 			getData("buglist.cgi?ctype=rdf&order=bugs.bug_status,bugs.bug_id&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
 		}
