@@ -759,16 +759,14 @@ reopen this bug or report a new one. Thanks in advance!";
 		
 		bool hasGoodItem()
 		{
-			bool gooditem = false;
 			for (int i=0;i<this.content.Count;i++)
 			{
 				if (Array.IndexOf(single_notuse,this.content[i][0])==-1)
 				{
-					gooditem = true;
-					break;
+					return true;
 				}
 			}
-			return gooditem;
+			return false;
 		}
 
 		public Stacktrace(int id, string data)
