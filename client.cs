@@ -774,8 +774,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			this.raw = data;
 			this.id = id;
 			this.content = new List<string[]>();
-			if (data.IndexOf("Traceback (most recent call last):")!=-1)
-				genPythonStackTrace(data);
+			if (data.IndexOf("Traceback (most recent call last):")!=-1 && genPythonStackTrace(data)) {}
 			else
 				genStackTrace(data);
 			if (!hasGoodItem())
