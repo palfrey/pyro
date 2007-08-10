@@ -761,7 +761,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			for (int i=0;i<this.content.Count;i++)
 			{
-				if (Array.IndexOf(single_notuse,this.content[i][0])==-1)
+				if (this.content[i][0]!="" && Array.IndexOf(single_notuse,this.content[i][0])==-1)
 				{
 					return true;
 				}
@@ -793,7 +793,6 @@ reopen this bug or report a new one. Thanks in advance!";
 		private void genStackTrace(string data)
 		{
 			int limit = 0;
-			string last = null;
 			bool seen_signal = false;
 			int idx = -1;
 			foreach (Match m in Regex.Matches(this.raw, Stacktrace.pattern, RegexOptions.Singleline))
@@ -843,11 +842,15 @@ reopen this bug or report a new one. Thanks in advance!";
 
 					if (seen_signal)
 					{
-						this.content.Add(tostore);
-						last = tostore[0];
-						limit++;
-						if (limit==5)
-							break;
+						if (usable)
+						{
+							this.content.Add(tostore);
+							limit++;
+							if (limit==5)
+								break;
+						}
+						else if (this.content.Count>0) // only add crappy entries after at least one good one
+							this.content.Add(tostore);
 					}
 				}
 				else if (m.Groups[5].Captures.Count!=0)
