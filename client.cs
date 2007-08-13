@@ -865,7 +865,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		const string trace = "Traceback \\(most recent call last\\):(.+)";
 		const string pythonPattern = "File &quot;([^&]+)&quot;, line (\\d+), in\\s+([^\\\n]+)";
-		const string pythonExcept = "(.+(?:Exception|Error): .+)"; 
+		const string pythonExcept = "(.+(?:Exception|Error)): .+"; 
 
 		private bool genPythonStackTrace(string data)
 		{
