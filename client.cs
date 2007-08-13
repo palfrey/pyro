@@ -1620,7 +1620,10 @@ reopen this bug or report a new one. Thanks in advance!";
 				{
 					Bug b = getExisting(st2.id);
 					if (b.stackhash != st.oldst.getHash())
+					{
+						Console.WriteLine("{0} != {1}",b.stackhash,st.oldst.getHash());
 						throw new Exception("db error");
+					}
 					if (!File.Exists(b.localpath()))
 						throw new Exception("Can't find bug "+String.Concat(b.id));
 					/*if (b.values["Status"] == "RESOLVED" && b.values["resolution"] == "DUPLICATE")
