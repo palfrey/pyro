@@ -845,6 +845,11 @@ reopen this bug or report a new one. Thanks in advance!";
 						if (usable)
 						{
 							this.content.Add(tostore);
+							if (limit>0 && this.content[limit-1][0] == tostore[0])
+							{
+								Console.WriteLine("duplicate line {0}",tostore[0]);
+								continue;
+							}
 							limit++;
 							if (limit==5)
 								break;
