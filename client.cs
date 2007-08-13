@@ -1143,6 +1143,8 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			StreamReader inFile = new StreamReader(path(cache));
 			string ret = inFile.ReadToEnd();
+			if (ret.IndexOf("Ill-formed Query")!=-1)
+				throw new Exception("Bad query! "+path(cache));
 			inFile.Close();
 			return ret;
 		}
@@ -1191,7 +1193,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				Console.WriteLine("Got {0}",st.path);
 				writePath(st.path,ret);
 				if (ret.IndexOf("Ill-formed Query")!=-1)
-					throw new Exception("Bad query!");
+					throw new Exception("Bad query! "+st.path);
 				Response.invoke(r,ret);
 			}
 			catch (Exception e)
@@ -1338,11 +1340,13 @@ reopen this bug or report a new one. Thanks in advance!";
 			{
 				if (s[0]!="")
 				{
-					query.Append(" \""+s[0]+"\"");
+					query.Append(" \""+s[0].Replace("&apos;","\\\'").Replace("é","e")+"\"");
 					name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
 				}
 			}
-			getData("buglist.cgi?ctype=rdf&order=bugs.bug_status,bugs.bug_id&query="+System.Web.HttpUtility.UrlEncode(query.ToString()),name.ToString(),r);
+			ASCIIEncoding encoding=new ASCIIEncoding();
+			encoding.GetBytes(query.ToString());
+		getData("buglist.cgi?ctype=rdf&order=bugs.bug_status,bugs.bug_id&query="+System.Web.HttpUtility.UrlEncode(encoding.GetBytes(query.ToString())),name.ToString(),r);
 		}
 
 		private struct changeState
