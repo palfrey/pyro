@@ -14,6 +14,8 @@ public class GetDupe
 	}
 
 	Bug bug;
+	Queue<Bug> bugs;
+	Stacktrace st;
 	
 	GetDupe(int id)
 	{
@@ -25,7 +27,7 @@ public class GetDupe
 	
 	private void grabStacktrace(object res, object data, Response r)
 	{
-		Stacktrace st = (Stacktrace)res;
+		st = (Stacktrace)res;
 		st.print();
 		if (st.usable())
 		{
@@ -50,10 +52,32 @@ public class GetDupe
 
 	private void grabSimilar(object res, object data, Response r)
 	{
-		Bug[] bugs = (Bug[])res;
-		foreach(Bug b in bugs)
+		bugs = new Queue<Bug>((Bug[])res);
+		nextSimilar();
+	}
+
+	private void nextSimilar()
+	{
+		if (bugs.Count == 0)
+			return;
+		Bug b = bugs.Dequeue();	
+		if (b.id == bug.id)
 		{
-			Console.WriteLine("shown {0}",b.id);
+			nextSimilar();
+			return;
 		}
+		b.buildStacktrace(new Response(checkStacktraces,null,b));
+	}
+
+	private void checkStacktraces(object res, object data, Response r)
+	{
+		Bug b = (Bug)data;
+		Stacktrace st2 = (Stacktrace)res;
+		Console.WriteLine("compare {0} {1}",bug.id,bug.stackhash);
+		Console.WriteLine("shown {0} {1}",b.id,b.stackhash);
+		if (st2 == st)
+			Console.WriteLine("dupe!");
+		/*else
+			nextSimilar();*/
 	}
 }
