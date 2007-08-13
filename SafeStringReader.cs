@@ -57,9 +57,21 @@ namespace Pyro
 			{
 				if (!Char.IsLetterOrDigit(buffer[i]) && Array.IndexOf(valids,buffer[i])==-1)
 				{
+					if (buffer[i]== ';')
+					{
+						Console.WriteLine(buffer);
+						throw new Exception();
+					}
 					buffer[i] = '?';
 					if (i!=start && buffer[i-1]=='<')
+					{
+						if (buffer[i-1]== ';')
+						{
+							Console.WriteLine(buffer);
+							throw new Exception();
+						}
 						buffer[i-1] = '?';
+					}
 				}
 				else if (i!=start)
 				{
