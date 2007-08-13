@@ -11,7 +11,7 @@ namespace Pyro
 			int ret = base.Read();
 			Console.WriteLine("read call: {0}",ret);
 			throw new Exception();
-			return ret;
+			//return ret;
 		}
 
 		public override string ReadLine()
@@ -19,7 +19,7 @@ namespace Pyro
 			string ret = base.ReadLine();
 			Console.WriteLine("readline call: {0}",ret);
 			throw new Exception();
-			return ret;
+			//return ret;
 		}
 
 		public override string ReadToEnd()
@@ -44,7 +44,7 @@ namespace Pyro
 			int ret = base.ReadBlock(buffer,index,count);
 			Console.WriteLine("readblock call: {0}",ret);
 			throw new Exception();
-			return ret;
+			//return ret;
 		}
 
 		private static char[] valids = {'<','\n','>','/','!','\"','=',' ','?',':','.','-','_','(',')','@','&',';',',','#','*','[',']'};
