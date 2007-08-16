@@ -870,7 +870,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		const string trace = "Traceback \\(most recent call last\\):(.+)";
 		const string pythonPattern = "File &quot;([^&]+)&quot;, line (\\d+), in\\s+([^\\\n]+)";
-		const string pythonExcept = "(.+(?:Exception|Error)): .+"; 
+		const string pythonExcept = "(.+(?:Exception|Error): .+)"; 
 
 		private bool genPythonStackTrace(string data)
 		{
@@ -891,7 +891,21 @@ reopen this bug or report a new one. Thanks in advance!";
 			
 			if (m2.Groups[1].Captures.Count == 0)
 				goto clear_content;
-			this.content.Add(new string[]{m2.Groups[1].Captures[0].Value});
+			string s = m2.Groups[1].Captures[0].Value;
+			List<string> bits = new List<string>(s.Split(':'));
+			s = "";
+			while (bits.Count>0)
+			{
+				if (bits[0].Trim().IndexOf(" ")!=-1)
+					break;
+				if (s!="")
+					s+= ":";
+				s += bits[0];
+				bits.RemoveAt(0);
+			}
+			if (s=="")
+				throw new Exception();
+			this.content.Add(new string[]{s});
 
 			return true;
 
