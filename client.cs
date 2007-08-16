@@ -1356,7 +1356,10 @@ reopen this bug or report a new one. Thanks in advance!";
 			StringBuilder query = new StringBuilder("meta-status:all");
 			StringBuilder name = new StringBuilder("stackdupe");
 			List<string> added = new List<string>();
+
+			//FIXME: workaround for http://bugzilla.gnome.org/show_bug.cgi?id=467015
 			added.Add("bus.py");
+
 			foreach(string[] s in st.content)
 			{
 				if (s[0]!="" && !added.Contains(s[0]))
