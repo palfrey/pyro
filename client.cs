@@ -1355,12 +1355,15 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			StringBuilder query = new StringBuilder("meta-status:all");
 			StringBuilder name = new StringBuilder("stackdupe");
+			List<string> added = new List<string>();
+			added.Add("bus.py");
 			foreach(string[] s in st.content)
 			{
-				if (s[0]!="")
+				if (s[0]!="" && !added.Contains(s[0]))
 				{
 					query.Append(" \""+s[0].Replace("&apos;","\\\'").Replace("é","e")+"\"");
 					name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
+					added.Add(s[0]);
 				}
 			}
 			ASCIIEncoding encoding=new ASCIIEncoding();
