@@ -635,7 +635,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				else
 					dup_id = dupe.dupid;
 			}
-			if (dupe.values["Status"] == "NEEDINFO" || dupe.values["Status"] == "UNCONFIRMED" || (dupe.values["Status"] == "RESOLVED" && dupe.values.ContainsKey("resolution") && dupe.values["resolution"] == "INCOMPLETE"))
+			if (dupe.values["Status"] == "NEEDINFO")
 				orig["comment"] = "Thanks for taking the time to report this bug.\nThis particular bug has already been reported into our bug tracking system, but the maintainers need more information to fix the bug. Could you please answer the questions in the other report in order to help the developers?";
 			else if (dupe.values["Status"] == "RESOLVED" && dupe.values["resolution"] == "FIXED")
 				orig["comment"] = "Thanks for taking the time to report this bug.\nThis particular bug has already been reported into our bug tracking system, but we are happy to tell you that the problem has already been fixed. It should be solved in the next software version. You may want to check for a software upgrade.";
