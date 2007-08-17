@@ -59,7 +59,10 @@ public class GetDupe
 	private void nextSimilar()
 	{
 		if (bugs.Count == 0)
+		{
+			Console.WriteLine("Ran out of bugs!");
 			return;
+		}
 		Bug b = bugs.Dequeue();	
 		if (b.id == bug.id)
 		{
@@ -77,7 +80,7 @@ public class GetDupe
 		Console.WriteLine("shown {0} {1}",b.id,b.stackhash);
 		if (st2 == st)
 			Console.WriteLine("dupe!");
-		/*else
-			nextSimilar();*/
+		else
+			nextSimilar();
 	}
 }
