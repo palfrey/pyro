@@ -1528,7 +1528,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			if (reader.Read())
 			{
 				Bug b = getExisting(reader.GetInt32(0));
-				if (b.id != 0)
+				if (b.id != 0 && b.stackhash!="")
 				{
 					if (b.stackhash != hash)
 					{
