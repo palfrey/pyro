@@ -884,7 +884,10 @@ reopen this bug or report a new one. Thanks in advance!";
 				//this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[2].Captures[0].Value,m.Groups[3].Captures[0].Value});
 				if (m.Groups[1].Captures.Count == 0 || m.Groups[3].Captures.Count == 0)
 					goto clear_content;
-				this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),m.Groups[3].Captures[0].Value});
+				string val = m.Groups[3].Captures[0].Value;
+				if (val == "&lt;lambda&gt;")
+					continue;
+				this.content.Add(new string[] {Path.GetFileName(m.Groups[1].Captures[0].Value),val});
 			}
 
 			m2 = Regex.Match(tr,Stacktrace.pythonExcept);
