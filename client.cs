@@ -96,6 +96,7 @@ namespace Pyro
 
 	public class Bug
 	{
+		public const string sd = "-simpledupe";
 		public StringHash values = null;
 		string comments = null;
 		int _id;
@@ -742,6 +743,11 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			chain.invoke(new Stacktrace(this.id,this.comments));
 		}
+
+		public void simpleDupe(Response r)
+		{
+			bugz.simpleDupe(this.id,r);
+		}
 	}
 
 	public class Stacktrace
@@ -1328,7 +1334,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void simpleDupe(int id, Response r)
 		{
-			getData("dupfinder/simple-dup-finder.cgi?id="+id, String.Concat(id)+"-dupe", r);
+			getData("dupfinder/simple-dup-finder.cgi?id="+id, String.Concat(id)+Bug.sd, r);
 		}
 
 		public void product(string name, Response r)

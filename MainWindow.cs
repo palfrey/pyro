@@ -62,6 +62,14 @@ namespace PyroGui
 			web.JumpToAnchor(stacktrace?"stacktrace":"c0");
 		}
 		
+		public void showDupe()
+		{
+			TextReader inFile = new StreamReader(bug.localpath()+Bug.sd);
+			string ret = inFile.ReadToEnd();
+			inFile.Close();
+			web.LoadFromString(ret);
+		}
+
 		/*public void loadURL(string url)
 		{
 			web.LoadUrl(url);
@@ -230,6 +238,13 @@ namespace PyroGui
 					case BugEvent.NoMatch:
 					case BugEvent.BadStacktrace:
 						Console.WriteLine("curr: {0}",e.b.id);
+
+						if (e.r!=BugEvent.Duplicate)
+						{
+							this.dupl.bug = e.b;
+							this.dupl.showDupe();
+						}
+
 						this.curr.bug = e.b;
 						this.curr.showBug(e.r==BugEvent.NoMatch || this.dupl.bug!=null);
 						((Window)gxml.GetWidget("MainWindow")).Title = "Pyro (*)";
@@ -571,8 +586,9 @@ namespace PyroGui
 		{
 			StringHash values = (StringHash)res;
 			if (values["Status"]=="UNCONFIRMED")
-				postEvent(new Event(BugEvent.BadStacktrace,bug,null, "Crap stacktrace?"));
-			endTask(r);	
+				bug.simpleDupe(new Response(gotSD,r,new Event(BugEvent.BadStacktrace,bug,null, "Crap stacktrace?")));
+			else
+				endTask(r);	
 		}
 
 		private Queue<Bug> dupe = null;
@@ -636,10 +652,19 @@ namespace PyroGui
 			if (values["Status"]=="UNCONFIRMED")
 			{
 				st.print();
-				postEvent(new Event(BugEvent.NoMatch,bug,null,String.Format("Can't find match. Need better trace for {0}?",bug.id)));
+				bug.simpleDupe(new Response(gotSD,r,new Event(BugEvent.NoMatch,bug,null,String.Format("Can't find match. Need better trace for {0}?",bug.id))));
 			}
 			else
+			{
 				Console.WriteLine("Not unconfirmed, so not need better trace");
+				endTask(r);
+			}
+		}
+
+		private void gotSD(object res, object data, Response r)
+		{
+			Event e = (Event)data;
+			postEvent(e);
 			endTask(r);
 		}
 
