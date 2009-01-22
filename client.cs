@@ -701,6 +701,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			string raw = (string)curr;
 			const string pattern = "\\*\\*\\* This bug has been marked as a duplicate of (\\d+) \\*\\*\\*";
 			MatchCollection mc = Regex.Matches(raw, pattern, RegexOptions.Singleline);
+			Console.WriteLine("Finding dupe id for {0}",id);
 			Match m = mc[mc.Count-1];
 			int new_idx = System.Convert.ToInt32(m.Groups[1].Captures[0].Value, 10);
 			Console.WriteLine("dupid is {0} for {1}",new_idx,id);
@@ -759,9 +760,9 @@ reopen this bug or report a new one. Thanks in advance!";
 		public List<string[]> content = null;
 		public int id;
 
-		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gtk_widget_show","__cxa_finalize","_fini","gtk_widget_size_request","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init","free","kill","g_source_is_destroyed","g_main_context_check","exit","gtk_dialog_run", "memset"};
+		private static string[] worthless = {"__kernel_vsyscall","raise", "abort", "g_free", "memcpy",  "NSGetModule", "??","g_logv","g_log","g_thread_create_full","start_thread","clone","g_type_check_instance_is_a","g_hash_table_insert","g_type_check_instance_cast","g_idle_dispatch","IA__g_main_context_dispatch","g_main_context_iterate","IA__g_main_loop_run","g_closure_invoke","g_signal_emit_valist","gtk_propagate_event","gtk_main_do_event","g_main_context_dispatch","g_main_loop_run","gtk_main","__libc_start_main","waitpid","bonobo_main","main","poll","gtk_widget_show","__cxa_finalize","_fini","gtk_widget_size_request","g_object_unref","_x_config_init","_IO_stdin_used","gettimeofday","__read_nocancel","gtk_main_quit","strlen","gtk_widget_hide","pthread_mutex_lock","strcmp","strrchr","IA__g_log","IA__g_logv","_start","pthread_mutex_unlock","gtk_object_destroy","gtk_widget_destroy","_gdk_events_init","free","kill","g_source_is_destroyed","g_main_context_check","exit","gtk_dialog_run", "memset", "_init"};
 
-		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style","gtk_button_clicked","gtk_button_released","gdk_window_is_viewable","gtk_container_foreach","gconf_listeners_notify","g_signal_emit","g_source_get_current_time","g_assert_warning","strstr","g_malloc","gst_pad_push","g_signal_emit_by_name"};
+		private static string[] single_notuse = {"fm_directory_view_bump_zoom_level","dbus_connection_dispatch","gdk_event_dispatch","gnome_vfs_job_get_count","nautilus_directory_async_state_changed","gtk_container_check_resize","gtk_widget_get_default_style","gtk_button_clicked","gtk_button_released","gdk_window_is_viewable","gtk_container_foreach","gconf_listeners_notify","g_signal_emit","g_source_get_current_time","g_assert_warning","strstr","g_malloc","gst_pad_push","g_signal_emit_by_name","g_timeout_dispatch","g_thread_self"};
 		
 		bool hasGoodItem()
 		{
@@ -903,9 +904,9 @@ reopen this bug or report a new one. Thanks in advance!";
 			string s = m2.Groups[1].Captures[0].Value;
 			List<string> bits = new List<string>(s.Split(':'));
 			s = "";
-			while (bits.Count>0)
+			while (bits.Count>1)
 			{
-				if (bits[0].Trim().IndexOf(" ")!=-1)
+				if (bits[0].Trim().IndexOf(" ")!=-1 || !Char.IsLetterOrDigit(bits[0].Trim()[0]))
 					break;
 				if (s!="")
 					s+= ":";
@@ -914,6 +915,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			}
 			if (s=="")
 				throw new Exception();
+			Console.WriteLine("s = '{0}'",s);
 			this.content.Add(new string[]{s});
 
 			return true;
@@ -1077,7 +1079,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			{
 				string postData="Bugzilla_login="+username+"&Bugzilla_password="+password+"&Bugzilla_remember=on&Bugzilla_restrictlogin=on&GoAheadAndLogIn=1&GoAheadAndLogIn=Log+in";
 				ASCIIEncoding encoding=new ASCIIEncoding();
-				byte[]  data = encoding.GetBytes(postData);
+				byte[] data = encoding.GetBytes(postData);
 
 				cookies = new CookieContainer();
 				HttpWebRequest myRequest = genRequest("index.cgi");
@@ -1091,7 +1093,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 				Console.WriteLine(myRequest.Headers.ToString());
 				HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
-				StreamReader sr = new StreamReader(wre.GetResponseStream(), Encoding.ASCII);
+				SafeStreamReader sr = new SafeStreamReader(wre.GetResponseStream(), Encoding.ASCII);
 				string ret = "";
 				try
 				{
@@ -1134,15 +1136,14 @@ reopen this bug or report a new one. Thanks in advance!";
 			public string path;
 		}
 		
-		public static string strip(string inVal)
+		/*public static string strip(string inVal)
 		{
 			string val = Regex.Replace(inVal,"<script type=\"text/javascript\">.*?</script>","",RegexOptions.Singleline);
 			val = Regex.Replace(val,"<link href=\"skins/standard/global.css\" rel=\"stylesheet\" type=\"text/css\">","<style type=\"text/css\">\n.trace-function { color: #cc0000; }\n.trace-handler  { color: #4e9a06; }\n</style>");
 
-
 			string pattern = @"</?(?i:img|base|script|embed|object|frameset|frame|iframe|meta|link)(.|\n)*?>";
 			return Regex.Replace(val, pattern, "").Trim();
-		}
+		}*/
 
 		private static char[] valids = {'.','-'};
 
@@ -1169,7 +1170,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public string readData(string cache)
 		{
-			StreamReader inFile = new StreamReader(path(cache));
+			SafeStreamReader inFile = new SafeStreamReader(path(cache));
 			string ret = inFile.ReadToEnd();
 			if (ret.IndexOf("Ill-formed Query")!=-1)
 				throw new Exception("Bad query! "+path(cache));
@@ -1180,7 +1181,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		private void getData(string url, string cache, Response r) {getData(url,cache,false,r);}
 		private void getData(string url, string cache, bool ignorecache, Response chain)
 		{
-			Console.WriteLine("grabbing {1}{0}",url,root);
+			Console.WriteLine("grabbing {1}{0} ({2})",url,root, cache);
 			if (ignorecache || !hasData(cache))
 			{
 				getDataState state = new getDataState();
@@ -1210,7 +1211,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				Response r = (Response)ar.AsyncState;
 				getDataState st = (getDataState)r.input;
 				HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
-				StreamReader sr = new StreamReader(wre.GetResponseStream()); /*, Encoding.UTF8);*/
+				SafeStreamReader sr = new SafeStreamReader(wre.GetResponseStream()); /*, Encoding.UTF8);*/
 				Console.WriteLine("\nResponse for {0}\n",st.path);
 				ret = sr.ReadToEnd();
 				sr.Close();
@@ -1373,14 +1374,15 @@ reopen this bug or report a new one. Thanks in advance!";
 			{
 				if (s[0]!="" && !added.Contains(s[0]) && s[0].Length>3)
 				{
-					query.Append(" \""+s[0].Replace("&apos;","\\\'").Replace("é","e").Replace("&lt;","<").Replace("&gt;",">")+"\"");
+					Console.WriteLine("s[0] is '{0}'",s[0]);
+					query.Append(" \""+s[0].Replace("&apos;","\\\'").Replace("&lt;","<").Replace("&gt;",">")+"\"");
 					name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
 					added.Add(s[0]);
 				}
 			}
 			ASCIIEncoding encoding=new ASCIIEncoding();
 			encoding.GetBytes(query.ToString());
-		getData("buglist.cgi?ctype=rdf&order=bugs.bug_status,bugs.bug_id&query="+System.Web.HttpUtility.UrlEncode(encoding.GetBytes(query.ToString())),name.ToString(),r);
+			getData("buglist.cgi?ctype=rdf&order=bugs.bug_status,bugs.bug_id&query="+System.Web.HttpUtility.UrlEncode(encoding.GetBytes(query.ToString())),name.ToString(),r);
 		}
 
 		private struct changeState
@@ -1439,7 +1441,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				newStream.Close();
 				HttpWebResponse wre = (HttpWebResponse) st.req.GetResponse();
 				//HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
-				StreamReader sr = new StreamReader(wre.GetResponseStream());
+				SafeStreamReader sr = new SafeStreamReader(wre.GetResponseStream());
 
 				string ret = "";
 				try

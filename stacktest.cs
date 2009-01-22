@@ -5,7 +5,7 @@ public class StackTest
 {
 	public static void Main(string[] args)
 	{
-		StreamReader inFile = new StreamReader(args[0]);
+		SafeStreamReader inFile = new SafeStreamReader(args[0], System.Text.Encoding.ASCII);
 		string xsl = inFile.ReadToEnd();
 		inFile.Close();
 		Stacktrace st = new Stacktrace(0,xsl);

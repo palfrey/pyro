@@ -80,7 +80,7 @@ public class GetDupe
 		Console.WriteLine("shown {0} {1}",b.id,b.stackhash);
 		if (st2 == st)
 			Console.WriteLine("dupe!");
-		else
-			nextSimilar();
+		/*else
+			nextSimilar();*/
 	}
 }

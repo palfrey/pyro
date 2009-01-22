@@ -104,4 +104,16 @@ namespace Pyro
 				Console.WriteLine(buffer,index,ret);*/
 		}
 	}
+
+	public class SafeStreamReader: StreamReader
+	{
+		public SafeStreamReader(Stream s):base(s){}
+		public SafeStreamReader(string s):base(s){}
+		public SafeStreamReader(Stream s, System.Text.Encoding e):base(s,e){} 
+		public SafeStreamReader(string s, System.Text.Encoding e):base(s,e){} 
+		public override string ReadToEnd()
+		{
+			return new SafeStringReader(base.ReadToEnd()).ReadToEnd();
+		}
+	}
 }

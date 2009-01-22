@@ -414,7 +414,7 @@ namespace PyroGui
 				d.b.clearRaw();
 				return true;
 			}
-			if (events.Count<5)
+			if (events.Count<10)
 			{
 				taskLock = true;
 				if (todo.Count == 0 && extra.Count == 0)
@@ -489,7 +489,8 @@ namespace PyroGui
 			{
 				if (!BugDB.DB.done(b.id))
 				{
-					if (todo.Count<=20)
+					if (todo.Count<=1)
+					//if (todo.Count<=20)
 					{
 						todo.Enqueue(b);
 						Console.WriteLine("{0} is todo",b.id);
@@ -641,6 +642,7 @@ namespace PyroGui
 			else
 			{
 				Console.WriteLine("{0} not a match for {1}",b2.id,bug.id);
+				st2.print();
 				if (!checkDupe(r))
 					bug.getValues("Status",new Response(testNeedinfoNoMatch,r,data));
 			}
