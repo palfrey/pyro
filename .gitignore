@@ -1,0 +1,8 @@
+.*.swp
+*.dll
+*.mdb
+*.exe
+bugs.db*
+cache
+cookies.dat
+change-test
