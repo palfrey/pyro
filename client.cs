@@ -1364,7 +1364,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void corebugs(Response r)
 		{
-			getData("reports/core-bugs-today.cgi","corebugs",new Response(corebugsMatcher,r));
+			getData("reports/core-bugs-today.cgi","corebugs",60*60,new Response(corebugsMatcher,r));
 		}
 
 		private void corebugsMatcher(object res, object input, Response r)
@@ -1372,7 +1372,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			string corelist = (string)res;
 			Match m = Regex.Match(corelist,"(buglist.cgi\\?bug_id=[^\"]+)");
 			Console.WriteLine(r);
-			getData(m.ToString()+"&ctype=rdf","corebugs-real",r);
+			getData(m.ToString()+"&ctype=rdf","corebugs-real",age(path("corebugs")),r);
 		}
 
 		public void stackDupe(Stacktrace st, Response r)
