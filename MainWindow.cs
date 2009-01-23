@@ -381,8 +381,6 @@ namespace PyroGui
 				Glade.XML gxml2 = new Glade.XML(null, "gui.glade", "dlgLogin", null);
 				gxml2.Autoconnect(this);
 				dlgLogin.Modal = true;
-				entUsername.Text = "palfrey@tevp.net";
-				entPassword.Text = "epsilon";
 				dlgLogin.Response += new ResponseHandler (on_dialog_response);
 				dlgLogin.Run();
 				dlgLogin.Destroy();
