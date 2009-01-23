@@ -150,7 +150,7 @@ namespace Pyro
 		}
 		
 		public void getRaw(Response r) { getRaw(-1,r);}
-		public void getRaw(long max_age, Response r)
+		public void getRaw(double max_age, Response r)
 		{
 			if (this._raw == null || bugz.isTooOld(localpath(),max_age))
 				bugz.getBug(new int [] {this.id},max_age,new Response(getRawResponse,r));
@@ -1170,10 +1170,10 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		private double age(string cache)
 		{
-			return (DateTime.Now - new FileInfo(path(cache)).LastWriteTime).TotalMilliseconds;
+			return (DateTime.Now - new FileInfo(path(cache)).LastWriteTime).TotalSeconds;
 		}
 
-		public bool isTooOld(string cache, long max_age)
+		public bool isTooOld(string cache, double max_age)
 		{
 			if (!hasData(cache))
 				return true;
@@ -1193,7 +1193,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		}
 
 		private void getData(string url, string cache, Response r) {getData(url,cache,-1,r);}
-		private void getData(string url, string cache, long max_age, Response chain)
+		private void getData(string url, string cache, double max_age, Response chain)
 		{
 			Console.WriteLine("grabbing {1}{0} ({2})",url,root, cache);
 			if (isTooOld(cache,max_age))
@@ -1264,13 +1264,13 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			public Stack<int> todo;
 			public int[] complete;
-			public long max_age;
+			public double max_age;
 		}
 		
 		public void getBug(int id, Response r) { getBug(new int[]{id},r);}
 		public void getBug(int[] id, Response r) { getBug(id,-1, r);}
 
-		public void getBug(int[] id, long max_age, Response r)
+		public void getBug(int[] id, double max_age, Response r)
 		{
 			BugList bl = new BugList();
 			bl.complete = id;
