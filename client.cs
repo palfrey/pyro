@@ -149,11 +149,11 @@ namespace Pyro
 			values[s] = val;
 		}
 		
-		public void getRaw(Response r) { getRaw(false,r);}
-		public void getRaw(bool ignorecache, Response r)
+		public void getRaw(Response r) { getRaw(-1,r);}
+		public void getRaw(long max_age, Response r)
 		{
-			if (this._raw == null || ignorecache)
-				bugz.getBug(new int [] {this.id},ignorecache,new Response(getRawResponse,r));
+			if (this._raw == null || bugz.isTooOld(localpath(),max_age))
+				bugz.getBug(new int [] {this.id},max_age,new Response(getRawResponse,r));
 			else
 				Response.invoke(r,this._raw);
 		}
@@ -1168,6 +1168,20 @@ reopen this bug or report a new one. Thanks in advance!";
 			return new FileInfo(path(cache)).Exists;
 		}
 
+		private double age(string cache)
+		{
+			return (DateTime.Now - new FileInfo(path(cache)).LastWriteTime).TotalMilliseconds;
+		}
+
+		public bool isTooOld(string cache, long max_age)
+		{
+			if (!hasData(cache))
+				return true;
+			if (max_age == -1)
+				return false;
+			return age(cache)>max_age;
+		}
+
 		public string readData(string cache)
 		{
 			SafeStreamReader inFile = new SafeStreamReader(path(cache));
@@ -1178,11 +1192,11 @@ reopen this bug or report a new one. Thanks in advance!";
 			return ret;
 		}
 
-		private void getData(string url, string cache, Response r) {getData(url,cache,false,r);}
-		private void getData(string url, string cache, bool ignorecache, Response chain)
+		private void getData(string url, string cache, Response r) {getData(url,cache,-1,r);}
+		private void getData(string url, string cache, long max_age, Response chain)
 		{
 			Console.WriteLine("grabbing {1}{0} ({2})",url,root, cache);
-			if (ignorecache || !hasData(cache))
+			if (isTooOld(cache,max_age))
 			{
 				getDataState state = new getDataState();
 				Console.WriteLine("\nNEW!");
@@ -1250,18 +1264,18 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			public Stack<int> todo;
 			public int[] complete;
-			public bool ignorecache;
+			public long max_age;
 		}
 		
 		public void getBug(int id, Response r) { getBug(new int[]{id},r);}
-		public void getBug(int[] id, Response r) { getBug(id,false, r);}
+		public void getBug(int[] id, Response r) { getBug(id,-1, r);}
 
-		public void getBug(int[] id, bool ignorecache, Response r)
+		public void getBug(int[] id, long max_age, Response r)
 		{
 			BugList bl = new BugList();
 			bl.complete = id;
 			bl.todo = new Stack<int>(id);
-			bl.ignorecache = ignorecache;
+			bl.max_age = max_age;
 			getBug(bl,r);
 		}
 
@@ -1273,7 +1287,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			while(bl.todo.Count>0)
 			{
 				int x = bl.todo.Pop();
-				if(!hasData(bugPath(x)) || bl.ignorecache)
+				if(isTooOld(bugPath(x),bl.max_age))
 				{
 					grab.AppendFormat("&id={0}",x);
 					path.AppendFormat("-{0}",x);
@@ -1283,7 +1297,7 @@ reopen this bug or report a new one. Thanks in advance!";
 				}
 			}
 			if (find)
-				getData(grab.ToString(), path.ToString(), bl.ignorecache, new Response(splitBugs,r,bl));
+				getData(grab.ToString(), path.ToString(), bl.max_age, new Response(splitBugs,r,bl));
 			else
 				splitBugs(null,bl,r);
 		}
@@ -1340,17 +1354,17 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void product(string name, Response r)
 		{
-			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+responders%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh&ctype=rdf",name,false,r);
+			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+responders%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh&ctype=rdf",name,r);
 		}
 
 		public void numbered(int id, int id2, Response r)
 		{
-			getData(String.Format("buglist.cgi?query=responders%3A0+severity%3Acritical+priority%3Ahigh+bug-number%3E%3D{0}+bug-number%3C%3D{1}+status%3Aunconfirmed&ctype=rdf",id,id2),"numbered",true,r);
+			getData(String.Format("buglist.cgi?query=responders%3A0+severity%3Acritical+priority%3Ahigh+bug-number%3E%3D{0}+bug-number%3C%3D{1}+status%3Aunconfirmed&ctype=rdf",id,id2),"numbered",0,r);
 		}
 
 		public void corebugs(Response r)
 		{
-			getData("reports/core-bugs-today.cgi","corebugs",false,new Response(corebugsMatcher,r));
+			getData("reports/core-bugs-today.cgi","corebugs",new Response(corebugsMatcher,r));
 		}
 
 		private void corebugsMatcher(object res, object input, Response r)
@@ -1358,7 +1372,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			string corelist = (string)res;
 			Match m = Regex.Match(corelist,"(buglist.cgi\\?bug_id=[^\"]+)");
 			Console.WriteLine(r);
-			getData(m.ToString()+"&ctype=rdf","corebugs-real",false,r);
+			getData(m.ToString()+"&ctype=rdf","corebugs-real",r);
 		}
 
 		public void stackDupe(Stacktrace st, Response r)
