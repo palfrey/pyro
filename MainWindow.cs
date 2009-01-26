@@ -684,7 +684,7 @@ namespace PyroGui
 
 		public void OnYesClicked(object o, EventArgs args)
 		{
-			if (this.dupl.bug!=null)
+			if (this.dupl.bug!=null && this.dupl.bug!=curr.bug)
 				postChange(new Delta(BugChange.MarkDupe,curr.bug,dupl.bug));
 			else
 				postChange(new Delta(BugChange.MarkBad,curr.bug,null));
