@@ -1384,14 +1384,17 @@ reopen this bug or report a new one. Thanks in advance!";
 			//FIXME: workaround for http://bugzilla.gnome.org/show_bug.cgi?id=467015
 			added.Add("bus.py");
 
-			foreach(string[] s in st.content)
+			foreach(string[] strs in st.content)
 			{
-				if (s[0]!="" && !added.Contains(s[0]) && s[0].Length>3)
+				foreach(string s in strs)
 				{
-					Console.WriteLine("s[0] is '{0}'",s[0]);
-					query.Append(" \""+s[0].Replace("&apos;","\\\'").Replace("&lt;","<").Replace("&gt;",">")+"\"");
-					name.Append("-"+s[0].Replace("(","_").Replace(")","_"));
-					added.Add(s[0]);
+					if (s!="" && !added.Contains(s) && s.Length>3)
+					{
+						Console.WriteLine("s is '{0}'",s);
+						query.Append(" \""+s.Replace("&apos;","\\\'").Replace("&lt;","<").Replace("&gt;",">")+"\"");
+						name.Append("-"+s.Replace("(","_").Replace(")","_"));
+						added.Add(s);
+					}
 				}
 			}
 			ASCIIEncoding encoding=new ASCIIEncoding();
