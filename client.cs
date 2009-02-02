@@ -284,7 +284,7 @@ namespace Pyro
 		private void triageableResponse(object res, object input, Response r)
 		{
 			StringHash values = (StringHash)res;
-			if ((values["Status"]!="UNCONFIRMED" && values["Status"]!="NEEDINFO") || values["bug_severity"]!="critical" || values["priority"]!="High")
+			if ((values["Status"]!="UNCONFIRMED" && values["Status"]!="NEEDINFO") || values["bug_severity"]!="critical")
 			{
 				Response.invoke(r,false);
 				return;
