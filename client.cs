@@ -1245,7 +1245,6 @@ reopen this bug or report a new one. Thanks in advance!";
 			}
 			catch (Exception e)
 			{
-				/* necessary because of http://bugzilla.gnome.org/show_bug.cgi?id=395709 */
 				Console.WriteLine("async exception");
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
