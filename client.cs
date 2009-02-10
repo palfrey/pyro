@@ -1363,7 +1363,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void numbered(int id, int id2, Response r)
 		{
-			getData(String.Format("buglist.cgi?query=responders%3A0+severity%3Acritical+priority%3Ahigh+bug-number%3E%3D{0}+bug-number%3C%3D{1}+status%3Aunconfirmed&ctype=rdf",id,id2),"numbered",0,r);
+			getData(String.Format("buglist.cgi?query=bug-number%3E%3D{0}+bug-number%3C%3D{1}&ctype=rdf",id,id2),"numbered",0,r);
 		}
 
 		public void corebugs(Response r)
