@@ -802,6 +802,10 @@ reopen this bug or report a new one. Thanks in advance!";
 			int limit = 0;
 			bool seen_signal = false;
 			int idx = -1;
+
+			if (data.IndexOf("(gdb)")!=-1) // manually generated trace, assume there's a signal there
+				seen_signal = true;
+
 			foreach (Match m in Regex.Matches(this.raw, Stacktrace.pattern, RegexOptions.Singleline))
 			{
 				int new_idx = System.Convert.ToInt32(m.Groups[1].Captures[0].Value, 10);
