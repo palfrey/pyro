@@ -1368,7 +1368,10 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void numbered(int id, int id2, Response r)
 		{
-			getData(String.Format("buglist.cgi?query=bug-number%3E%3D{0}+bug-number%3C%3D{1}&ctype=rdf",id,id2),"numbered",0,r);
+			if (id == id2)
+				getData(String.Format("buglist.cgi?query=bug-number%3D{0}+meta-status%3Aall&ctype=rdf",id,id2),"numbered",0,r);
+			else
+				getData(String.Format("buglist.cgi?query=bug-number%3E%3D{0}+bug-number%3C%3D+meta-status%3Aall{1}&ctype=rdf",id,id2),"numbered",0,r);
 		}
 
 		public void corebugs(Response r)
