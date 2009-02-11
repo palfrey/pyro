@@ -1666,6 +1666,13 @@ reopen this bug or report a new one. Thanks in advance!";
 			dbcmd.ExecuteNonQuery();
 		}
 
+		public void clearDone(int id)
+		{
+			IDbCommand dbcmd = dbcon.CreateCommand();
+			dbcmd.CommandText = "update bugs set done=0 where id="+String.Concat(id);
+			dbcmd.ExecuteNonQuery();
+		}
+
 		private void nextSimilar(object res, object input, Response r)
 		{
 			SimilarTodo st = (SimilarTodo) input;

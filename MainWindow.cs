@@ -428,6 +428,7 @@ namespace PyroGui
 							try
 							{
 								int id = Int32.Parse(product);
+								BugDB.DB.clearDone(id); // always want to do numbered bugs
 								new Bug(0,bugz).numbered(id,id,new Response(extraBugs,new Response(endTask)));
 							}
 							catch (FormatException)
