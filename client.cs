@@ -336,33 +336,37 @@ namespace Pyro
 			else
 				limit = -1;
 
-			StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings, limit);
-			//throw new Exception();
 			List<Bug> bugs = new List<Bug>();
-			foreach(StringHash h in core)
+			if (curr != null)
 			{
-				int id = System.Convert.ToInt32(h["ID"],10);
-				Bug b = Bug.getExisting(id);
-				if (b == null)
+				StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings, limit);
+				foreach(StringHash h in core)
 				{
-					b = new Bug(id,this.bugz);
-					b.values = new StringHash();
-					assignKeys(b,h);
-					b.setValues();
+					int id = System.Convert.ToInt32(h["ID"],10);
+					Bug b = Bug.getExisting(id);
+					if (b == null)
+					{
+						b = new Bug(id,this.bugz);
+						b.values = new StringHash();
+						assignKeys(b,h);
+						b.setValues();
+					}
+					bugs.Add(b);
+					Console.WriteLine("new bug {0}",b.id);
+					if (dolimit)
+					{
+						limit--;
+						if (limit == 0)
+							break;
+					}
 				}
-				bugs.Add(b);
-				Console.WriteLine("new bug {0}",b.id);
-				if (dolimit)
-				{
-					limit--;
-					if (limit == 0)
-						break;
-				}
+				/*if (bugs.Count==0)
+					throw new Exception("no bugs in result!");*/
+				//throw new Exception();
+				Console.WriteLine("we have {0} bugs",bugs.Count);
 			}
-			/*if (bugs.Count==0)
-				throw new Exception("no bugs in result!");*/
-			//throw new Exception();
-			Console.WriteLine("we have {0} bugs",bugs.Count);
+			else
+				Console.WriteLine("Bug list acquiring error");
 			chain.invoke(bugs.ToArray());
 		}
 
@@ -1059,6 +1063,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+path);
 			myRequest.UserAgent = "Pyro bug triager/0.2";
+			myRequest.Timeout = 10000; // 10 seconds
 			if (wp!=null)
 				myRequest.Proxy = wp;
 			myRequest.CookieContainer = cookies;
@@ -1223,10 +1228,10 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		private void getDataCallback(IAsyncResult ar)
 		{
+			Response r = (Response)ar.AsyncState;
 			try
 			{
 				string ret = "";
-				Response r = (Response)ar.AsyncState;
 				getDataState st = (getDataState)r.input;
 				HttpWebResponse wre = (HttpWebResponse) st.req.EndGetResponse(ar);
 				SafeStreamReader sr = new SafeStreamReader(wre.GetResponseStream()); /*, Encoding.UTF8);*/
@@ -1245,12 +1250,12 @@ reopen this bug or report a new one. Thanks in advance!";
 			}
 			catch (Exception e)
 			{
-				/* necessary because of http://bugzilla.gnome.org/show_bug.cgi?id=395709 */
 				Console.WriteLine("async exception");
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
-				Environment.Exit(1);
-				throw e;
+				Response.invoke(r,null);
+				/*Environment.Exit(1);
+				throw e;*/
 			}
 		}
 
