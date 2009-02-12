@@ -1084,7 +1084,7 @@ reopen this bug or report a new one. Thanks in advance!";
 		{
 			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(root+path);
 			myRequest.UserAgent = "Pyro bug triager/0.2";
-			myRequest.Timeout = 10000; // 10 seconds
+			myRequest.Timeout = 20*1000; // 20 seconds
 			if (wp!=null)
 				myRequest.Proxy = wp;
 			myRequest.CookieContainer = cookies;
