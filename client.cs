@@ -1363,7 +1363,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void product(string name, Response r)
 		{
-			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+responders%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh&ctype=rdf",name,r);
+			getData("buglist.cgi?query=product%3A"+name.Replace("+","%2B")+"+responders%3A0+status%3Aunconfirmed+severity%3Acritical+priority%3Ahigh&ctype=rdf",name,24*60*60,r);
 		}
 
 		public void numbered(int id, int id2, Response r)
