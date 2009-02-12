@@ -1470,9 +1470,9 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		private void changeCallback(IAsyncResult ar)
 		{
+			Response r = (Response)ar.AsyncState;
 			try
 			{
-				Response r = (Response)ar.AsyncState;
 				changeState st = (changeState)r.input;
 				Stream newStream=st.req.EndGetRequestStream(ar);
 				newStream.Write(st.data,0,st.data.Length);
@@ -1505,12 +1505,12 @@ reopen this bug or report a new one. Thanks in advance!";
 			}
 			catch (Exception e)
 			{
-				/* necessary because of http://bugzilla.gnome.org/show_bug.cgi?id=395709 */
 				Console.WriteLine("async exception");
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
-				Environment.Exit(1);
-				throw e;
+				Response.invoke(r,null);
+				/*Environment.Exit(1);
+				throw e;*/
 			}
 		}
 	}
