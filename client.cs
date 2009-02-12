@@ -887,7 +887,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		const string trace = "Traceback \\(most recent call last\\):(.+)";
 		const string pythonPattern = "File &quot;([^&]+)&quot;, line (\\d+), in\\s+([^\\\n]+)";
-		const string pythonExcept = "(.+(?:Exception|Error): .+)"; 
+		const string pythonExcept = "(.+(?:Exception|Error|error): .+)"; 
 
 		private bool genPythonStackTrace(string data)
 		{
@@ -931,6 +931,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			return true;
 
 			clear_content:
+			Console.WriteLine("Failure, clearing!");
 			this.content.Clear();
 			return false;
 		}
