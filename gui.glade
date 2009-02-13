@@ -56,6 +56,15 @@
                 <property name="position">3</property>
               </packing>
             </child>
+            <child>
+              <widget class="GtkLabel" id="lblRetrieving">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Retrieving</property>
+              </widget>
+              <packing>
+                <property name="position">4</property>
+              </packing>
+            </child>
           </widget>
           <packing>
             <property name="expand">False</property>
