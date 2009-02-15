@@ -1046,7 +1046,7 @@ reopen this bug or report a new one. Thanks in advance!";
 			if (cachepath[cachepath.Length-1] != Path.DirectorySeparatorChar)
 				cachepath += Path.DirectorySeparatorChar;
 			Console.WriteLine("cachepath {0}",cachepath);
-			wp = null; //new WebProxy("taz",8118);
+			wp = null;
 			FileInfo f=new FileInfo("cookies.dat");
 			if (f.Exists)
 			{
@@ -1054,8 +1054,26 @@ reopen this bug or report a new one. Thanks in advance!";
 				BinaryFormatter b=new BinaryFormatter();
 				cookies = (CookieContainer)b.Deserialize(s);
 				s.Close();
-				if (cookies.GetCookieHeader(new System.Uri(root)).IndexOf("Bugzilla_login")!=-1)
+				HttpWebRequest myRequest = genRequest("index.cgi");
+				HttpWebResponse wre = (HttpWebResponse) myRequest.GetResponse();
+				SafeStreamReader sr = new SafeStreamReader(wre.GetResponseStream(), Encoding.ASCII);
+				string ret = "";
+				try
+				{
+					ret = sr.ReadToEnd();
+				}
+				catch
+				{
+					Console.WriteLine("Exception while reading login");
+				}
+				sr.Close();
+				TextWriter outFile = new StreamWriter("login-test");
+				outFile.Write(ret);
+				outFile.Close();
+				if (ret.IndexOf("Logged In")!=-1)
 					_loggedIn = true;
+				else
+					cookies = null;
 			}
 		}
 
@@ -1072,18 +1090,6 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public bool login(string username, string password)
 		{
-			if (cookies == null)
-			{
-				FileInfo f=new FileInfo("cookies.dat");
-				if (f.Exists)
-				{
-					Stream s=f.Open(FileMode.Open);
-					BinaryFormatter b=new BinaryFormatter();
-					cookies = (CookieContainer)b.Deserialize(s);
-					s.Close();
-				}
-			}
-
 			if (cookies==null || cookies.GetCookieHeader(new System.Uri(root)).IndexOf("Bugzilla_login")==-1)
 			{
 				string postData="Bugzilla_login="+username+"&Bugzilla_password="+password+"&Bugzilla_remember=on&Bugzilla_restrictlogin=on&GoAheadAndLogIn=1&GoAheadAndLogIn=Log+in";
@@ -1487,6 +1493,10 @@ reopen this bug or report a new one. Thanks in advance!";
 				outFile.Write("\n\n");
 				outFile.Write(ret);
 				outFile.Close();
+				if (ret.IndexOf("<title>Log in to Bugzilla</title>")>0)
+				{
+					throw new Exception("Panic! Not logged in");
+				}
 				Console.WriteLine("Bug update complete");
 				Response.invoke(r,false);
 			}

@@ -6,4 +6,5 @@ bugs.db*
 cache
 cookies.dat
 change-test
+login-test
 mono.log
