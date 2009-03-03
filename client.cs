@@ -809,7 +809,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 			if (data.IndexOf("(gdb)")!=-1) // manually generated trace, assume there's a signal there
 				seen_signal = true;
-			if (data.IndexOf("launchpad.net/ubuntu/?source/")!=-1) // launchpad import, assume signal
+			if (data.IndexOf("launchpad.net/ubuntu/?source/")!=-1 || data.IndexOf("https://bugs.launchpad.net/bugs/")!=-1) // launchpad import, assume signal
 				seen_signal = true;
 
 			foreach (Match m in Regex.Matches(this.raw, Stacktrace.pattern, RegexOptions.Singleline))
