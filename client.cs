@@ -1385,15 +1385,7 @@ reopen this bug or report a new one. Thanks in advance!";
 
 		public void corebugs(Response r)
 		{
-			getData("reports/core-bugs-today.cgi","corebugs",60*60,new Response(corebugsMatcher,r));
-		}
-
-		private void corebugsMatcher(object res, object input, Response r)
-		{
-			string corelist = (string)res;
-			Match m = Regex.Match(corelist,"(buglist.cgi\\?bug_id=[^\"]+)");
-			Console.WriteLine(r);
-			getData(m.ToString()+"&ctype=rdf","corebugs-real",age(path("corebugs")),r);
+			getData("buglist.cgi?query_format=advanced&short_desc_type=allwordssubstr&short_desc=crash&long_desc_type=allwordssubstr&long_desc=&status_whiteboard_type=allwordssubstr&status_whiteboard=&keywords_type=anywords&keywords=&bug_status=UNCONFIRMED&bug_severity=blocker&bug_severity=critical&bug_severity=major&priority=Urgent&priority=High&priority=Normal&emailtype1=substring&email1=&emailtype2=substring&email2=&bugidtype=include&bug_id=&chfieldfrom=1w&chfieldto=Now&chfield=[Bug+creation]&chfieldvalue=&cmdtype=doit&order=Reuse+same+sort+as+last+time&field0-0-0=noop&type0-0-0=noop&value0-0-0=&format=rdf","week-bugs", 60*60*4, r);
 		}
 
 		public void stackDupe(Stacktrace st, Response r)
