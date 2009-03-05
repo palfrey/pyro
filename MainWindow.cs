@@ -488,8 +488,7 @@ namespace PyroGui
 			{
 				if (!BugDB.DB.done(b.id))
 				{
-					if (todo.Count<=1)
-					//if (todo.Count<=20)
+					if (todo.Count<=20)
 					{
 						todo.Enqueue(b);
 						Console.WriteLine("{0} is todo",b.id);
