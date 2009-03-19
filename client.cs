@@ -339,6 +339,10 @@ namespace Pyro
 			List<Bug> bugs = new List<Bug>();
 			if (curr != null)
 			{
+				if (((string)curr).IndexOf("<h1>Software error:</h1>")!=-1)
+				{
+					throw new Exception("Error while trying to do search!");
+				}
 				StringHash[] core = Bug.xmlParser((string)curr,"bz:bug",mappings, limit);
 				foreach(StringHash h in core)
 				{
